@@ -1,54 +1,53 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, CalendarDays } from "lucide-react";
+import { ArrowRight, CalendarDays, Sun, Cloud, Moon } from "lucide-react";
 import FadeIn from "@/components/ui/fade-in";
 
 /* ── static data ─────────────────────────────────────────────────── */
-const ROTATE_WORDS = ["Bhaktapur", "matchday", "evenings", "5-a-side", "twilight"];
+const ROTATE_WORDS = ["Bhaktapur", "twilight", "matchday", "sundown", "extra time"];
 
-const STEPS = [
-  {
-    n: "01",
-    label: "Pick your slot",
-    text: "Choose a date and time. Morning, Day, or Evening — each has a flat hourly rate.",
-  },
-  {
-    n: "02",
-    label: "Reserve online",
-    text: "Lock the slot for your squad, or open it for other players to join. No payment yet.",
-  },
-  {
-    n: "03",
-    label: "Show up and play",
-    text: "Your slot is held. Pay on arrival at the venue — card or cash, your call.",
-  },
+const FEATURES = [
+  { n: "01", label: "Floodlit pitch",  sub: "5-a-side · clean turf · open till 10", x: 26, y: 26 },
+  { n: "02", label: "Café terrace",    sub: "Rooftop · coffee & snacks",             x: 52, y: 34 },
+  { n: "03", label: "Garden lounge",   sub: "Pre-match chill · string lights",       x: 42, y: 64 },
+  { n: "04", label: "Tennis & track",  sub: "Sister courts · ring track",            x: 74, y: 62 },
 ];
 
-const RATES = [
-  { band: "morning", label: "Morning", time: "7 AM – 10 AM", rate: "800",   peak: false },
-  { band: "day",     label: "Day",     time: "10 AM – 5 PM", rate: "1,000", peak: false },
-  { band: "evening", label: "Evening", time: "5 PM – 10 PM", rate: "1,200", peak: true  },
-] as const;
-
-const BAND_COLOR: Record<string, string> = {
-  morning: "#F5C76A",
-  day:     "#7DD3FC",
-  evening: "#B8FF3B",
-};
-
-const CAFE_POINTS = [
-  "Coffee and snacks all day, same hours as the pitch.",
-  "Indoor seating with a view onto the court.",
-  "A proper spot for a debrief after the final whistle.",
+const TICKER_ITEMS = [
+  { t: "12:08", txt: "5-a-side · 8 PM · party of 6" },
+  { t: "12:04", txt: "5-a-side · 7 PM · party of 10" },
+  { t: "11:51", txt: "Café reservation · table for 4" },
+  { t: "11:42", txt: "5-a-side · 6 PM · open game" },
+  { t: "11:30", txt: "5-a-side · 9 PM · party of 8" },
 ];
 
 const QUICK_SLOTS = [
   { time: "7 PM", meta: "NPR 1,200", taken: false },
   { time: "8 PM", meta: "NPR 1,200", taken: false },
   { time: "9 PM", meta: "NPR 1,200", taken: true  },
+];
+
+const STEPS = [
+  { n: "01", label: "Pick your slot",    text: "Choose a date and time. Morning, Day, or Evening — each has a flat hourly rate." },
+  { n: "02", label: "Reserve online",    text: "Lock the slot for your squad, or open it for other players to join. No payment yet." },
+  { n: "03", label: "Show up and play",  text: "Your slot is held. Pay on arrival at the venue — card or cash, your call." },
+];
+
+const RATES = [
+  { band: "morning", label: "Morning", time: "7 AM – 10 AM", rate: "800",   note: "Quieter session, the lowest rate, and the most flexible availability.", peak: false },
+  { band: "day",     label: "Day",     time: "10 AM – 5 PM", rate: "1,000", note: "Balanced demand. A good window for groups and weekday sessions.",        peak: false },
+  { band: "evening", label: "Evening", time: "5 PM – 10 PM", rate: "1,200", note: "Prime hours. Strongest atmosphere, highest demand, every night.",        peak: true  },
+] as const;
+
+const BAND_ICON = { morning: Sun, day: Cloud, evening: Moon } as const;
+
+const CAFE_POINTS = [
+  "Coffee and snacks all day, same hours as the pitch.",
+  "Indoor seating with a view onto the court.",
+  "A proper spot for a debrief after the final whistle.",
 ];
 
 const MARQUEE_ITEMS = [
@@ -77,7 +76,141 @@ function useCountUp(target: number, frames = 60) {
   return value;
 }
 
-/* ── component ───────────────────────────────────────────────────── */
+/* ── firefly seed helper ─────────────────────────────────────────── */
+function seedRand(i: number) {
+  return (i * 9301 + 49297) % 233280;
+}
+
+/* ── AerialMonitor ───────────────────────────────────────────────── */
+function AerialMonitor({ fmtTime }: { fmtTime: string }) {
+  const [active, setActive] = useState(0);
+  const [auto, setAuto] = useState(true);
+
+  useEffect(() => {
+    if (!auto) return;
+    const id = setInterval(() => setActive((i) => (i + 1) % FEATURES.length), 3200);
+    return () => clearInterval(id);
+  }, [auto]);
+
+  const [tickerIdx, setTickerIdx] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTickerIdx((i) => (i + 1) % TICKER_ITEMS.length), 2400);
+    return () => clearInterval(id);
+  }, []);
+
+  const fireflies = useMemo(
+    () =>
+      Array.from({ length: 14 }, (_, i) => {
+        const s = seedRand(i);
+        return {
+          left: s % 100,
+          top: (s * 7) % 100,
+          dur: 6 + ((s * 3) % 80) / 10,
+          delay: (s % 50) / 10,
+          size: 1.6 + ((s * 5) % 30) / 10,
+        };
+      }),
+    []
+  );
+
+  const a = FEATURES[active];
+  const tick = TICKER_ITEMS[tickerIdx];
+
+  return (
+    <div className="hero-aerial">
+      {/* photo frame */}
+      <div className="hero-aerial-frame" onMouseLeave={() => setAuto(true)}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/aerial-twilight.jpg"
+          alt="Aerial view of Hamro Futsal at twilight"
+          className="hero-aerial-photo"
+        />
+
+        <div className="hero-aerial-warm" aria-hidden="true" />
+        <div className="hero-aerial-grid" aria-hidden="true" />
+
+        {/* fireflies */}
+        <div className="hero-aerial-fireflies" aria-hidden="true">
+          {fireflies.map((f, i) => (
+            <span
+              key={i}
+              className="firefly"
+              style={{
+                left: `${f.left}%`, top: `${f.top}%`,
+                width: `${f.size}px`, height: `${f.size}px`,
+                animationDuration: `${f.dur}s`, animationDelay: `${f.delay}s`,
+              }}
+            />
+          ))}
+        </div>
+
+        {/* moving accent spot */}
+        <span
+          className={`hero-aerial-spot${a.y > 48 ? " flip-y" : ""}${a.x > 58 ? " flip-x" : ""}`}
+          style={{ left: `${a.x}%`, top: `${a.y}%` }}
+          aria-hidden="true"
+        >
+          <span className="hero-aerial-spot-dot" />
+          <span className="hero-aerial-spot-ring" />
+          <span className="hero-aerial-spot-ring r2" />
+          <span className="hero-aerial-spot-tag">
+            <b>{a.n}</b>
+            <span>{a.label}</span>
+          </span>
+        </span>
+
+      </div>
+
+      {/* feature list + quickbook */}
+      <div className="hero-aerial-list">
+        <div className="hero-aerial-list-head">
+          <span>The grounds</span>
+          <span className="hero-aerial-list-count">04</span>
+        </div>
+        {FEATURES.map((f, i) => (
+          <Link
+            key={f.n}
+            href="/book"
+            className={`hero-aerial-item${i === active ? " on" : ""}`}
+            onMouseEnter={() => { setActive(i); setAuto(false); }}
+          >
+            <span className="hero-aerial-item-n">{f.n}</span>
+            <span className="hero-aerial-item-text">
+              <b>{f.label}</b>
+              <em>{f.sub}</em>
+            </span>
+            <span className="hero-aerial-item-arr">
+              <ArrowRight size={12} />
+            </span>
+          </Link>
+        ))}
+
+        <div className="hero-aerial-quickbook">
+          <div className="hero-aerial-qb-head">
+            <span><b>Tonight</b> · 5 PM – 10 PM</span>
+            <span className="hero-aerial-qb-peak">PEAK</span>
+          </div>
+          <div className="hero-aerial-qb-slots">
+            {QUICK_SLOTS.map((s) => (
+              <Link
+                key={s.time}
+                href={s.taken ? "#" : "/book"}
+                className={`hero-aerial-qb-slot${s.taken ? " taken" : ""}`}
+                aria-disabled={s.taken}
+              >
+                <span className="t">{s.time}</span>
+                <span className="m">{s.taken ? "Taken" : s.meta}</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── main component ──────────────────────────────────────────────── */
 export default function HomeClient() {
   /* live clock */
   const [now, setNow] = useState(() => new Date());
@@ -97,6 +230,14 @@ export default function HomeClient() {
   }, []);
   const longestWord = ROTATE_WORDS.reduce((a, b) => (b.length > a.length ? b : a));
 
+  /* edition number = day of year */
+  const editionNum = String(
+    Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86_400_000)
+  ).padStart(3, "0");
+  const dateStr = now
+    .toLocaleDateString("en-GB", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })
+    .toUpperCase();
+
   /* count-up stats */
   const openCount     = useCountUp(7);
   const bookingsToday = useCountUp(24);
@@ -104,166 +245,115 @@ export default function HomeClient() {
   return (
     <main>
 
-      {/* ── CINEMATIC HERO ─────────────────────────────────────────── */}
+      {/* ── ALMANAC HERO ───────────────────────────────────────────── */}
       <section className="home-hero">
 
-        {/* background photo — uses img tag so Ken Burns inset works */}
-        <div className="home-hero-bg" aria-hidden="true">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/hero-player.jpg" alt="" className="home-hero-bg-img" />
-        </div>
+        {/* almanac grid: left editorial + right aerial */}
+        <div className="container hero-almanac-grid">
 
-        <div className="home-hero-content container">
-          <div>
-            {/* top row: status pill + coordinates */}
-            <div className="home-hero-top">
-              <div className="live">
-                <span className="pulse" />
-                <span className="label">{isOpen ? "Open now" : "Closed"}</span>
-                <span className="sep" />
-                <span className="time">{fmtTime} · Bhaktapur</span>
-              </div>
-              <div className="home-hero-marker">
-                <span className="corner"><i /><i /></span>
-                27.6722° N — 85.4298° E
-              </div>
-            </div>
-
-            {/* headline + CTA */}
-            <div className="home-hero-headline-wrap">
-              <h1 className="home-hero-headline">
-                <span className="line">
-                  <span className="line-inner">Futsal &amp; café</span>
+          {/* left editorial column */}
+          <div className="hero-left">
+            <h1 className="hero-display">
+              <span className="hero-display-line">
+                <span className="hero-display-inner">Floodlit,</span>
+              </span>
+              <span className="hero-display-line">
+                <span className="hero-display-inner">
+                  <em className="hero-display-it">and full&nbsp;of&nbsp;</em>
                 </span>
-                <span className="line">
-                  <span className="line-inner">
-                    in&nbsp;
-                    <span className="home-hero-rotator">
-                      {ROTATE_WORDS.map((w, i) => (
-                        <span
-                          key={w}
-                          className={`home-hero-rotator-word${i === wordIdx ? " is-active" : ""}`}
-                          aria-hidden={i !== wordIdx}
-                        >
-                          {w}.
-                        </span>
-                      ))}
-                      {/* invisible sizer holds the rotator's width to the longest word */}
-                      <span className="home-hero-rotator-sizer" aria-hidden="true">
-                        {longestWord}.
+              </span>
+              <span className="hero-display-line">
+                <span className="hero-display-inner">
+                  <span className="hero-rotator-slot">
+                    {ROTATE_WORDS.map((w, i) => (
+                      <span
+                        key={w}
+                        className={`hero-rotator-w${i === wordIdx ? " on" : ""}`}
+                        aria-hidden={i !== wordIdx}
+                      >
+                        {w},
                       </span>
+                    ))}
+                    <span className="hero-rotator-sizer" aria-hidden="true">
+                      {longestWord},
                     </span>
                   </span>
                 </span>
-              </h1>
+              </span>
+              <span className="hero-display-line">
+                <span className="hero-display-inner">
+                  from 5&nbsp;<span className="hero-display-am">PM</span>.
+                </span>
+              </span>
+            </h1>
 
-              <p className="home-hero-sub">
-                Book a slot online, show up ready. Clean turf, flat hourly
-                pricing, and a café for before and after the game.
-              </p>
+            <p className="hero-lead">
+              A whole little world for the part of the day around the game —
+              turf, terrace, garden, café. Book a slot. Show up. Stay late.
+            </p>
 
-              <div className="home-hero-cta">
-                <Link href="/book" className="btn btn-primary btn-lg">
-                  <CalendarDays size={15} />
-                  Book a slot
-                  <span className="arrow"><ArrowRight size={14} /></span>
-                </Link>
-                <Link href="/pricing" className="btn btn-ghost btn-lg">
-                  View pricing
-                </Link>
-              </div>
+            <div className="hero-cta-row">
+              <Link href="/book" className="btn btn-primary btn-lg">
+                <CalendarDays size={15} />
+                Book a slot
+                <span className="btn-icon-wrap"><ArrowRight size={13} /></span>
+              </Link>
+              <Link href="/pricing" className="btn btn-ghost btn-lg">
+                View pricing
+              </Link>
             </div>
+
+            <dl className="hero-stats">
+              <div className="hero-stat">
+                <dt>Open slots</dt>
+                <dd><b>{openCount}</b><span> / 15</span></dd>
+              </div>
+              <div className="hero-stat">
+                <dt>Booked today</dt>
+                <dd><b>{bookingsToday}</b></dd>
+              </div>
+              <div className="hero-stat">
+                <dt>From / hr</dt>
+                <dd><span className="npr">NPR</span><b>800</b></dd>
+              </div>
+            </dl>
           </div>
 
-          {/* bottom rail: readouts + quick-book card */}
-          <div className="home-hero-bottom">
-            <div className="hero-readouts">
-              <div className="hero-readout">
-                <div className="hero-readout-label">Open slots today</div>
-                <div className="hero-readout-value">
-                  <span style={{ color: "var(--accent)" }}>{openCount}</span>
-                  <span style={{ color: "var(--fg-dim)", fontWeight: 500 }}> / 15</span>
-                </div>
-                <div className="hero-readout-sub">Updated just now</div>
-              </div>
-              <div className="hero-readout">
-                <div className="hero-readout-label">Booked today</div>
-                <div className="hero-readout-value">{bookingsToday}</div>
-                <div className="hero-readout-sub">Across all bands</div>
-              </div>
-              <div className="hero-readout">
-                <div className="hero-readout-label">From</div>
-                <div className="hero-readout-value">
-                  <span style={{ fontSize: "0.55em", color: "var(--fg-dim)", fontWeight: 500, letterSpacing: 0, marginRight: 4 }}>NPR</span>
-                  800
-                  <span style={{ fontSize: "0.55em", color: "var(--fg-dim)", fontWeight: 500, letterSpacing: 0, marginLeft: 4 }}>/hr</span>
-                </div>
-                <div className="hero-readout-sub">Morning band, flat</div>
-              </div>
-            </div>
-
-            <div className="hero-quickbook">
-              <div className="hero-quickbook-head">
-                <span className="hero-quickbook-title">Quick book · tonight</span>
-                <span className="hero-quickbook-meta">5 PM – 10 PM · peak</span>
-              </div>
-              <div className="hero-quickbook-slots">
-                {QUICK_SLOTS.map((s) => (
-                  <div key={s.time} className={`hero-quickbook-slot peak${s.taken ? " taken" : ""}`}>
-                    <div className="hero-quickbook-slot-time">{s.time}</div>
-                    <div className="hero-quickbook-slot-meta">{s.taken ? "Taken" : s.meta}</div>
-                  </div>
-                ))}
-              </div>
-              <div className="hero-quickbook-foot">
-                <span>Pay at venue · card or cash</span>
-                <Link href="/book" className="btn-text" style={{ fontSize: 12 }}>
-                  See all slots <ArrowRight size={11} />
-                </Link>
-              </div>
-            </div>
-          </div>
+          {/* right: aerial monitor */}
+          <AerialMonitor fmtTime={fmtTime} />
         </div>
 
-        {/* scrolling marquee at very bottom of hero */}
+        {/* ambient marquee */}
         <div className="home-hero-marquee" aria-hidden="true">
           <div className="home-hero-marquee-track">
             {[0, 1].map((dup) =>
               MARQUEE_ITEMS.map((item, i) => (
-                <span key={`${dup}-${i}`} className="home-hero-marquee-item">
-                  {item}
-                </span>
+                <span key={`${dup}-${i}`} className="home-hero-marquee-item">{item}</span>
               ))
             )}
           </div>
-        </div>
-
-        {/* animated scroll cue */}
-        <div className="home-hero-scroll" aria-hidden="true">
-          <span>Scroll</span>
-          <div className="home-hero-scroll-line" />
         </div>
       </section>
 
       {/* ── FACTS STRIP ────────────────────────────────────────────── */}
       <section style={{ paddingTop: "clamp(64px,7vw,100px)", paddingBottom: "clamp(40px,5vw,72px)" }}>
-        <FadeIn>
-          <div className="container">
-            <div className="facts">
-              {[
-                { value: "7 AM",     label: "Opens daily" },
-                { value: "10 PM",    label: "Last slot" },
-                { value: "800 NPR",  label: "From per hour" },
-                { value: "1–2 hr",   label: "Booking duration" },
-              ].map((f) => (
-                <div className="fact" key={f.label}>
+        <div className="container">
+          <div className="facts">
+            {[
+              { value: "7 AM",   label: "Opens daily" },
+              { value: "10 PM",  label: "Last slot" },
+              { value: <>800<span style={{ fontSize: "0.45em", color: "var(--fg-dim)", marginLeft: 6, fontWeight: 500, letterSpacing: 0 }}>NPR</span></>, label: "From per hour" },
+              { value: "1–2 hr", label: "Booking duration" },
+            ].map((f, i) => (
+              <FadeIn key={i} delay={0.06 * i}>
+                <div className="fact">
                   <div className="fact-value">{f.value}</div>
                   <div className="fact-label">{f.label}</div>
                 </div>
-              ))}
-            </div>
+              </FadeIn>
+            ))}
           </div>
-        </FadeIn>
+        </div>
       </section>
 
       {/* ── HOW IT WORKS ───────────────────────────────────────────── */}
@@ -288,39 +378,35 @@ export default function HomeClient() {
           </div>
         </FadeIn>
 
-        <FadeIn>
-          <div className="container">
-            <div className="steps">
-              {STEPS.map((s) => (
-                <div className="step" key={s.n}>
-                  <div className="step-num">{s.n}</div>
-                  <div className="step-title">{s.label}</div>
-                  <div className="step-text">{s.text}</div>
-                </div>
-              ))}
-            </div>
+        <div className="container">
+          <div className="steps">
+            {STEPS.map((s, i) => (
+              <FadeIn key={s.n} delay={0.08 + i * 0.14} className="step">
+                <div className="step-num">{s.n}</div>
+                <div className="step-title">{s.label}</div>
+                <div className="step-text">{s.text}</div>
+              </FadeIn>
+            ))}
           </div>
-        </FadeIn>
+        </div>
       </section>
 
       {/* ── FULL-BLEED PITCH ───────────────────────────────────────── */}
       <FadeIn>
         <div className="pitch-full">
           <Image
-            src="https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=1600&q=80"
+            src="/pitch-night.jpg"
             alt="Floodlit pitch at night"
             fill
             sizes="100vw"
             className="object-cover"
           />
-          {/* gradient fade to page colour */}
-          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg,rgba(8,9,12,.2) 40%,#08090c 100%)", zIndex: 1 }} />
-          {/* label overlay */}
+          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(270deg,rgba(8,9,12,.72) 28%,rgba(8,9,12,.1) 70%)", zIndex: 1 }} />
           <div
             className="container"
-            style={{ position: "absolute", inset: 0, display: "flex", alignItems: "flex-end", paddingBottom: "clamp(40px,6vw,80px)", zIndex: 2 }}
+            style={{ position: "absolute", inset: 0, display: "flex", alignItems: "flex-end", justifyContent: "flex-end", paddingBottom: "clamp(40px,6vw,80px)", zIndex: 2 }}
           >
-            <div>
+            <div style={{ textAlign: "right" }}>
               <span className="eyebrow eyebrow--accent" style={{ display: "inline-flex", marginBottom: 16 }}>
                 <span className="dot" /> The pitch
               </span>
@@ -354,30 +440,35 @@ export default function HomeClient() {
           </div>
         </FadeIn>
 
-        <FadeIn>
-          <div className="container">
-            <div className="pricing-inline">
-              {RATES.map((r) => (
-                <div key={r.band} className={`pricing-inline-row${r.peak ? " peak" : ""}`}>
-                  <div className={`cell-band ${r.band}`}>
-                    <span className="band-dot" style={{ background: BAND_COLOR[r.band] }} />
-                    {r.label}
-                    {r.peak && <span className="peak-tag">PEAK</span>}
+        <div className="container">
+          <div className="price-bands-grid">
+            {RATES.map((r, i) => {
+              const Icon = BAND_ICON[r.band];
+              return (
+                <FadeIn key={r.band} delay={i * 0.12} className={`price-band-card ${r.band}`}>
+                  <div className="price-band-top">
+                    <span className="price-band-n">{String(i + 1).padStart(2, "0")}</span>
+                    {r.peak && <span className="price-band-peak">PEAK</span>}
                   </div>
-                  <div className="cell-time">{r.time}</div>
-                  <div className={`cell-rate${r.peak ? " peak" : ""}`}>
-                    <span className="npr">NPR</span>{r.rate}
-                  </div>
-                  <div className="cell-cta">
+                  <div className="price-band-icon"><Icon size={20} /></div>
+                  <p className="price-band-name">{r.label}</p>
+                  <p className="price-band-hours">{r.time}</p>
+                  <p className="price-band-note">{r.note}</p>
+                  <div className="price-band-bottom">
+                    <div className="price-band-price">
+                      <span className="price-band-currency">NPR</span>
+                      <span className="price-band-amount">{r.rate}</span>
+                      <span className="price-band-unit">/hr</span>
+                    </div>
                     <Link href="/book" className={`btn ${r.peak ? "btn-primary" : "btn-ghost"} btn-sm`}>
-                      Book <ArrowRight size={12} />
+                      Book <span className="btn-icon-wrap"><ArrowRight size={11} /></span>
                     </Link>
                   </div>
-                </div>
-              ))}
-            </div>
+                </FadeIn>
+              );
+            })}
           </div>
-        </FadeIn>
+        </div>
       </section>
 
       {/* ── CAFÉ ───────────────────────────────────────────────────── */}
@@ -413,16 +504,21 @@ export default function HomeClient() {
                   Coffee, snacks, and a place to sit — built for the part of the
                   day around the game, not just the match itself.
                 </p>
-                <ul className="cafe-points">
+                <div className="cafe-points" role="list">
                   {CAFE_POINTS.map((pt, i) => (
-                    <li key={i}>
-                      <b>0{i + 1}</b>
-                      <span>{pt}</span>
-                    </li>
+                    <FadeIn key={i} delay={0.1 + i * 0.1}>
+                      <div className="cafe-point" role="listitem">
+                        <b>0{i + 1}</b>
+                        <span>{pt}</span>
+                      </div>
+                    </FadeIn>
                   ))}
-                </ul>
+                </div>
                 <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 32 }}>
-                  <Link href="/book" className="btn btn-primary btn-lg">Book a slot</Link>
+                  <Link href="/book" className="btn btn-primary btn-lg">
+                    Book a slot
+                    <span className="btn-icon-wrap"><ArrowRight size={13} /></span>
+                  </Link>
                   <Link href="/contact" className="btn btn-ghost btn-lg">Get directions</Link>
                 </div>
               </div>
@@ -448,10 +544,11 @@ export default function HomeClient() {
                 <Link href="/book" className="btn btn-primary btn-lg">
                   <CalendarDays size={15} />
                   Book now
-                  <ArrowRight size={14} />
+                  <span className="btn-icon-wrap"><ArrowRight size={13} /></span>
                 </Link>
                 <Link href="/contact" className="btn btn-ghost btn-lg">
                   Get directions
+                  <span className="btn-icon-wrap"><ArrowRight size={13} /></span>
                 </Link>
               </div>
             </div>
