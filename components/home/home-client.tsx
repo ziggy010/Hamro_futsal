@@ -7,21 +7,13 @@ import { ArrowRight, CalendarDays, Sun, Cloud, Moon } from "lucide-react";
 import FadeIn from "@/components/ui/fade-in";
 
 /* ── static data ─────────────────────────────────────────────────── */
-const ROTATE_WORDS = ["Bhaktapur", "twilight", "matchday", "sundown", "extra time"];
+const ROTATE_WORDS = ["belongs", "gathers", "stays", "wins", "breathes", "lives"];
 
 const FEATURES = [
   { n: "01", label: "Floodlit pitch",  sub: "5-a-side · clean turf · open till 10", x: 26, y: 26 },
   { n: "02", label: "Café terrace",    sub: "Rooftop · coffee & snacks",             x: 52, y: 34 },
   { n: "03", label: "Garden lounge",   sub: "Pre-match chill · string lights",       x: 42, y: 64 },
   { n: "04", label: "Tennis & track",  sub: "Sister courts · ring track",            x: 74, y: 62 },
-];
-
-const TICKER_ITEMS = [
-  { t: "12:08", txt: "5-a-side · 8 PM · party of 6" },
-  { t: "12:04", txt: "5-a-side · 7 PM · party of 10" },
-  { t: "11:51", txt: "Café reservation · table for 4" },
-  { t: "11:42", txt: "5-a-side · 6 PM · open game" },
-  { t: "11:30", txt: "5-a-side · 9 PM · party of 8" },
 ];
 
 const QUICK_SLOTS = [
@@ -82,7 +74,7 @@ function seedRand(i: number) {
 }
 
 /* ── AerialMonitor ───────────────────────────────────────────────── */
-function AerialMonitor({ fmtTime }: { fmtTime: string }) {
+function AerialMonitor() {
   const [active, setActive] = useState(0);
   const [auto, setAuto] = useState(true);
 
@@ -91,12 +83,6 @@ function AerialMonitor({ fmtTime }: { fmtTime: string }) {
     const id = setInterval(() => setActive((i) => (i + 1) % FEATURES.length), 3200);
     return () => clearInterval(id);
   }, [auto]);
-
-  const [tickerIdx, setTickerIdx] = useState(0);
-  useEffect(() => {
-    const id = setInterval(() => setTickerIdx((i) => (i + 1) % TICKER_ITEMS.length), 2400);
-    return () => clearInterval(id);
-  }, []);
 
   const fireflies = useMemo(
     () =>
@@ -114,8 +100,6 @@ function AerialMonitor({ fmtTime }: { fmtTime: string }) {
   );
 
   const a = FEATURES[active];
-  const tick = TICKER_ITEMS[tickerIdx];
-
   return (
     <div className="hero-aerial">
       {/* photo frame */}
@@ -212,16 +196,6 @@ function AerialMonitor({ fmtTime }: { fmtTime: string }) {
 
 /* ── main component ──────────────────────────────────────────────── */
 export default function HomeClient() {
-  /* live clock */
-  const [now, setNow] = useState(() => new Date());
-  useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 30_000);
-    return () => clearInterval(id);
-  }, []);
-  const h = now.getHours();
-  const isOpen = h >= 7 && h < 22;
-  const fmtTime = now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-
   /* rotating word */
   const [wordIdx, setWordIdx] = useState(0);
   useEffect(() => {
@@ -229,14 +203,6 @@ export default function HomeClient() {
     return () => clearInterval(id);
   }, []);
   const longestWord = ROTATE_WORDS.reduce((a, b) => (b.length > a.length ? b : a));
-
-  /* edition number = day of year */
-  const editionNum = String(
-    Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86_400_000)
-  ).padStart(3, "0");
-  const dateStr = now
-    .toLocaleDateString("en-GB", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })
-    .toUpperCase();
 
   /* count-up stats */
   const openCount     = useCountUp(7);
@@ -255,15 +221,16 @@ export default function HomeClient() {
           <div className="hero-left">
             <h1 className="hero-display">
               <span className="hero-display-line">
-                <span className="hero-display-inner">Floodlit,</span>
+                <span className="hero-display-inner">Where Bhaktapur</span>
               </span>
               <span className="hero-display-line">
                 <span className="hero-display-inner">
-                  <em className="hero-display-it">and full&nbsp;of&nbsp;</em>
+                  plays, eats,
                 </span>
               </span>
               <span className="hero-display-line">
                 <span className="hero-display-inner">
+                  and{" "}
                   <span className="hero-rotator-slot">
                     {ROTATE_WORDS.map((w, i) => (
                       <span
@@ -271,26 +238,16 @@ export default function HomeClient() {
                         className={`hero-rotator-w${i === wordIdx ? " on" : ""}`}
                         aria-hidden={i !== wordIdx}
                       >
-                        {w},
+                        {w}.
                       </span>
                     ))}
                     <span className="hero-rotator-sizer" aria-hidden="true">
-                      {longestWord},
+                      {longestWord}.
                     </span>
                   </span>
                 </span>
               </span>
-              <span className="hero-display-line">
-                <span className="hero-display-inner">
-                  from 5&nbsp;<span className="hero-display-am">PM</span>.
-                </span>
-              </span>
             </h1>
-
-            <p className="hero-lead">
-              A whole little world for the part of the day around the game —
-              turf, terrace, garden, café. Book a slot. Show up. Stay late.
-            </p>
 
             <div className="hero-cta-row">
               <Link href="/book" className="btn btn-primary btn-lg">
@@ -320,7 +277,7 @@ export default function HomeClient() {
           </div>
 
           {/* right: aerial monitor */}
-          <AerialMonitor fmtTime={fmtTime} />
+          <AerialMonitor />
         </div>
 
         {/* ambient marquee */}
