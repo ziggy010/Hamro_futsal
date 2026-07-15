@@ -92,7 +92,7 @@ export default function Footer() {
             </p>
 
             <div className="mt-5 space-y-3 text-[15px] text-[#94A3B8]">
-              <p>Bhaktapur, Nepal</p>
+              <p>Lamachaur, Dekocha, Bhaktapur</p>
               <p>9813110577</p>
               <p>tajale01@email.com</p>
             </div>

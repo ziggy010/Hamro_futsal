@@ -14,7 +14,7 @@ const faqs = [
   },
   {
     q: "Where exactly are you located?",
-    a: "In Bhaktapur, near Samata School. Call us and we'll guide you directly from wherever you are.",
+    a: "In Lamachaur, Dekocha, Bhaktapur. Call us and we'll guide you directly from wherever you are.",
   },
 ];
 
@@ -50,7 +50,7 @@ export default function ContactPage() {
             }}
           >
             Questions about bookings, venue hours, or directions — reach us
-            directly. We&apos;re in Bhaktapur, near Samata School, open every day.
+            directly. We&apos;re in Lamachaur, Dekocha, Bhaktapur, open every day.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link href="/book">
@@ -80,7 +80,7 @@ export default function ContactPage() {
               letterSpacing: "0.04em",
             }}
           >
-            <span>Bhaktapur · near Samata School</span>
+            <span>Lamachaur · Dekocha · Bhaktapur</span>
             <span>7 AM – 10 PM daily</span>
             <span>9813110577</span>
           </div>
@@ -136,7 +136,7 @@ export default function ContactPage() {
                 }}
               >
                 {[
-                  { label: "Location", value: "Bhaktapur, near Samata School" },
+                  { label: "Location", value: "Lamachaur, Dekocha, Bhaktapur" },
                   { label: "Hours", value: "Open daily, 7 AM to 10 PM" },
                   { label: "Phone", value: "9813110577" },
                 ].map(({ label, value }) => (
@@ -170,7 +170,7 @@ export default function ContactPage() {
 
               <div style={{ marginTop: "2rem" }}>
                 <a
-                  href="https://maps.google.com/?q=Bhaktapur+Nepal"
+                  href="https://maps.google.com/?q=Lamachaur+Dekocha+Bhaktapur+Nepal"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -193,7 +193,7 @@ export default function ContactPage() {
             >
               <Image
                 src="https://images.unsplash.com/photo-1522778119026-d647f0596c20?auto=format&fit=crop&w=1400&q=80"
-                alt="Futsal court at the Bhaktapur venue"
+                alt="Futsal court at the Lamachaur, Dekocha, Bhaktapur venue"
                 fill
                 sizes="(max-width: 768px) 100vw, 50vw"
                 className="object-cover"
@@ -234,7 +234,7 @@ export default function ContactPage() {
             <svg
               viewBox="0 0 1320 640"
               style={{ display: "block", width: "100%", height: "auto" }}
-              aria-label="Stylized map of Hamro Futsal location in Bhaktapur"
+              aria-label="Stylized map of Hamro Futsal location in Lamachaur, Dekocha, Bhaktapur"
             >
               <defs>
                 <pattern id="mapGrid" width="40" height="40" patternUnits="userSpaceOnUse">
@@ -332,7 +332,7 @@ export default function ContactPage() {
               <g transform="translate(700 270)">
                 <rect x="0" y="0" width="220" height="58" rx="10" fill="#18202a" stroke="rgba(255,255,255,0.12)" strokeWidth="0.8" />
                 <text x="14" y="20" fontFamily="ui-monospace, SFMono-Regular, monospace" fontSize="9" fill="#B8FF3B" letterSpacing="2">HAMRO FUTSAL</text>
-                <text x="14" y="40" fontFamily="ui-serif, Georgia, serif" fontSize="15" fill="#F5F7FB">Bhaktapur · near Samata School</text>
+                <text x="14" y="40" fontFamily="ui-serif, Georgia, serif" fontSize="15" fill="#F5F7FB">Lamachaur · Dekocha · Bhaktapur</text>
                 <text x="14" y="52" fontFamily="ui-monospace, SFMono-Regular, monospace" fontSize="8" fill="#94A3B8" letterSpacing="1">7AM — 10PM · DAILY</text>
               </g>
             </svg>
@@ -363,7 +363,7 @@ export default function ContactPage() {
                 <span>ELEV 1,401 m</span>
               </div>
               <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
-                <a href="https://maps.google.com/?q=Bhaktapur+Nepal" target="_blank" rel="noreferrer">
+                <a href="https://maps.google.com/?q=Lamachaur+Dekocha+Bhaktapur+Nepal" target="_blank" rel="noreferrer">
                   <button className="btn btn-ghost">Open in Maps</button>
                 </a>
                 <a href="tel:9813110577">

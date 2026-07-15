@@ -10,7 +10,7 @@ import Providers from "./providers";
 export const metadata: Metadata = {
   title: "Hamro Futsal",
   description:
-    "Book premium futsal in Bhaktapur. Simple, fast, and built for players.",
+    "Book premium futsal in Lamachaur, Dekocha, Bhaktapur. Simple, fast, and built for players.",
 };
 
 export const viewport: Viewport = {
