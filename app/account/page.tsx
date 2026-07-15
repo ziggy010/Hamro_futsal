@@ -2,10 +2,13 @@ import { redirect } from "next/navigation";
 import { auth } from "../../auth";
 import { prisma } from "../../src/lib/prisma";
 import { format } from "date-fns";
-import { CalendarDays, Sparkles } from "lucide-react";
+import { CalendarDays } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import AccountProfileCard from "./account-profile-card";
 import AccountBookingsSection from "./account-bookings-section";
 import StatePanel from "@/components/ui/state-panel";
+import FadeIn from "@/components/ui/fade-in";
 
 type Slot = {
   id: string;
@@ -37,9 +40,7 @@ type JoinedGame = {
     booking: {
       bookingDate: Date;
       slots: Slot[];
-      user: {
-        name: string;
-      };
+      user: { name: string };
     };
   };
 };
@@ -52,12 +53,10 @@ function hourTo12(hour: number) {
 
 function formatSlotRange(slots: Slot[]) {
   if (!slots.length) return "Time unavailable";
-
   const sorted = [...slots].sort((a, b) => a.startHour - b.startHour);
   const first = sorted[0];
   const last = sorted[sorted.length - 1];
-
-  return `${hourTo12(first.startHour)} - ${hourTo12(last.endHour)}`;
+  return `${hourTo12(first.startHour)} – ${hourTo12(last.endHour)}`;
 }
 
 function statusLabel(status: string) {
@@ -71,38 +70,23 @@ function statusLabel(status: string) {
   return status;
 }
 
-function statusClasses(status: string) {
-  if (
-    status === "PRIVATE_CONFIRMED" ||
-    status === "OPEN_CONFIRMED" ||
-    status === "FULL"
-  ) {
-    return "border-[#1E4D33] bg-[#10261B] text-[#7EF7C1]";
-  }
-
-  if (status === "OPEN_PENDING_FILL" || status === "PENDING_FILL") {
-    return "border-[#6C5A14] bg-[#2B2411] text-[#F4D35E]";
-  }
-
-  return "border-[#4D2A2F] bg-[#241519] text-[#FF9999]";
+function statusColor(status: string) {
+  if (status === "PRIVATE_CONFIRMED" || status === "OPEN_CONFIRMED" || status === "FULL") return "var(--accent)";
+  if (status === "OPEN_PENDING_FILL" || status === "PENDING_FILL") return "#F4D35E";
+  return "rgba(255,150,150,0.8)";
 }
 
 function hasBookingEnded(booking: Booking) {
   if (!booking.slots.length) return true;
-
-  const latestEndHour = Math.max(...booking.slots.map((slot) => slot.endHour));
+  const latestEndHour = Math.max(...booking.slots.map((s) => s.endHour));
   const gameEnd = new Date(booking.bookingDate);
   gameEnd.setHours(latestEndHour, 0, 0, 0);
-
   return gameEnd <= new Date();
 }
 
 export default async function AccountPage() {
   const session = await auth();
-
-  if (!session?.user?.email) {
-    redirect("/login?callbackUrl=/account");
-  }
+  if (!session?.user?.email) redirect("/login?callbackUrl=/account");
 
   const user = await prisma.user.findUnique({
     where: { email: session.user.email },
@@ -119,18 +103,9 @@ export default async function AccountPage() {
           bookingDate: true,
           playersCount: true,
           totalPrice: true,
-          slots: {
-            select: {
-              id: true,
-              startHour: true,
-              endHour: true,
-              price: true,
-            },
-          },
+          slots: { select: { id: true, startHour: true, endHour: true, price: true } },
         },
-        orderBy: {
-          bookingDate: "desc",
-        },
+        orderBy: { bookingDate: "desc" },
       },
       openGameJoins: {
         select: {
@@ -147,258 +122,258 @@ export default async function AccountPage() {
                 select: {
                   bookingDate: true,
                   slots: true,
-                  user: {
-                    select: {
-                      name: true,
-                    },
-                  },
+                  user: { select: { name: true } },
                 },
               },
             },
           },
         },
-        orderBy: {
-          createdAt: "desc",
-        },
+        orderBy: { createdAt: "desc" },
       },
     },
   });
 
-  if (!user) {
-    redirect("/login");
-  }
+  if (!user) redirect("/login");
 
   const bookings = user.bookings as Booking[];
   const joinedGames = user.openGameJoins as JoinedGame[];
   const visibleBookings = bookings.filter(
-    (booking) =>
-      booking.status !== "CANCELLED" && booking.status !== "OPEN_EXPIRED",
+    (b) => b.status !== "CANCELLED" && b.status !== "OPEN_EXPIRED",
   );
-  const activeBookings = visibleBookings.filter(
-    (booking) => !hasBookingEnded(booking),
-  );
-  const pendingPayments = visibleBookings.filter(
-    (booking) => booking.paymentStatus === "PENDING",
-  );
+  const activeBookings = visibleBookings.filter((b) => !hasBookingEnded(b));
+  const pendingPayments = visibleBookings.filter((b) => b.paymentStatus === "PENDING");
   const displayName = user.name || "Player";
 
-  return (
-    <main className="min-h-screen pb-20">
-      <section className="container py-8 md:py-12">
-        <div className="relative overflow-hidden rounded-[38px] border border-white/10 bg-[rgba(10,14,19,0.78)] p-6 shadow-[0_20px_60px_rgba(0,0,0,0.26)] backdrop-blur-2xl md:p-8">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_22%,rgba(184,255,59,0.08),transparent_18%),radial-gradient(circle_at_80%_30%,rgba(184,255,59,0.08),transparent_18%),linear-gradient(135deg,rgba(255,255,255,0.04),transparent_45%)]" />
-          <div className="absolute inset-x-0 top-0 h-px bg-white/12" />
+  const stats = [
+    { label: "Upcoming", value: activeBookings.length },
+    { label: "Joined games", value: joinedGames.length },
+    { label: "Pending payment", value: pendingPayments.length },
+  ];
 
-          <div className="relative z-10 grid gap-8 lg:grid-cols-[1.08fr_0.92fr] lg:items-start">
-            <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-[rgba(18,22,28,0.24)] px-4 py-2 shadow-[0_10px_24px_rgba(0,0,0,0.16)] backdrop-blur-xl">
-                <span className="h-2.5 w-2.5 rounded-full bg-[#B8FF3B] shadow-[0_0_14px_rgba(184,255,59,0.55)]" />
-                <span className="text-xs font-medium uppercase tracking-[0.18em] text-[#B8FF3B]">
-                  Member dashboard
+  return (
+    <main className="min-h-screen">
+
+      {/* ── PAGE HEADER ──────────────────────────────────────────────── */}
+      <section className="container pt-12 pb-10 md:pt-20 md:pb-14">
+        <FadeIn>
+          <span className="eyebrow">Account</span>
+          <h1
+            style={{
+              fontFamily: "var(--f-sans)",
+              fontWeight: 700,
+              fontSize: "clamp(2.4rem,5.5vw,4.8rem)",
+              letterSpacing: "-0.055em",
+              lineHeight: 0.96,
+              color: "var(--fg)",
+              marginTop: "1rem",
+              maxWidth: "20ch",
+            }}
+          >
+            Welcome back, {displayName}.
+          </h1>
+          <p style={{ marginTop: "1.25rem", fontSize: "17px", lineHeight: 1.7, color: "var(--fg-3)", maxWidth: "48ch" }}>
+            Your bookings, open game activity, and account details in one place.
+          </p>
+        </FadeIn>
+
+        {/* Stats strip */}
+        <FadeIn delay={0.08}>
+          <div
+            style={{
+              marginTop: "2.5rem",
+              display: "grid",
+              gridTemplateColumns: `repeat(${stats.length}, 1fr)`,
+              borderTop: "1px solid var(--line)",
+              borderBottom: "1px solid var(--line)",
+            }}
+          >
+            {stats.map((s, i) => (
+              <div
+                key={s.label}
+                style={{
+                  padding: "1.25rem 0",
+                  paddingLeft: i === 0 ? 0 : "1.5rem",
+                  paddingRight: i === stats.length - 1 ? 0 : "1.5rem",
+                  borderRight: i < stats.length - 1 ? "1px solid var(--line)" : undefined,
+                }}
+              >
+                <span
+                  style={{
+                    fontFamily: "var(--f-mono)",
+                    fontSize: "10px",
+                    letterSpacing: "0.14em",
+                    textTransform: "uppercase",
+                    color: "var(--fg-dim)",
+                    display: "block",
+                    marginBottom: "0.5rem",
+                  }}
+                >
+                  {s.label}
+                </span>
+                <span
+                  style={{
+                    fontFamily: "var(--f-mono)",
+                    fontSize: "clamp(28px,3vw,40px)",
+                    fontWeight: 600,
+                    letterSpacing: "-0.04em",
+                    color: "var(--fg)",
+                    lineHeight: 1,
+                    fontVariantNumeric: "tabular-nums",
+                  }}
+                >
+                  {s.value}
                 </span>
               </div>
-
-              <h1 className="mt-5 text-[2.4rem] font-semibold leading-[1.02] tracking-[-0.05em] text-white md:text-[4.2rem]">
-                Welcome back, {displayName}.
-              </h1>
-
-              <p className="mt-5 max-w-2xl text-[15px] leading-8 text-[#94A3B8] md:text-base">
-                Track upcoming bookings, open-game activity, and the profile
-                details that keep every reservation smooth.
-              </p>
-
-              <div className="mt-6 flex flex-wrap gap-3 text-sm text-[#C9D2DC]">
-                <div className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2">
-                  Private and open games
-                </div>
-                <div className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2">
-                  Payment at venue
-                </div>
-                <div className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2">
-                  Manage bookings easily
-                </div>
-              </div>
-            </div>
-
-            <div className="overflow-hidden rounded-[30px] border border-white/12 bg-[rgba(20,24,30,0.30)] shadow-[0_20px_60px_rgba(0,0,0,0.24),0_0_30px_rgba(184,255,59,0.06)] backdrop-blur-2xl">
-              <div className="relative p-5 md:p-6">
-                <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.14),rgba(255,255,255,0.03)_45%,rgba(255,255,255,0.02)_100%)]" />
-                <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-white/18" />
-
-                <div className="relative z-10">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-[18px] border border-white/10 bg-white/[0.08] text-[#B8FF3B]">
-                      <Sparkles size={20} />
-                    </div>
-                    <div>
-                      <p className="text-sm text-[#D7DEE7]">Account health</p>
-                      <p className="text-lg font-semibold text-white">
-                        Ready for your next game
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                    <div className="rounded-[22px] border border-white/10 bg-white/[0.04] p-4">
-                      <p className="text-sm text-[#94A3B8]">Upcoming bookings</p>
-                      <p className="mt-2 text-[1.8rem] font-semibold tracking-[-0.04em] text-white">
-                        {activeBookings.length}
-                      </p>
-                    </div>
-
-                    <div className="rounded-[22px] border border-white/10 bg-white/[0.04] p-4">
-                      <p className="text-sm text-[#94A3B8]">Joined games</p>
-                      <p className="mt-2 text-[1.8rem] font-semibold tracking-[-0.04em] text-white">
-                        {joinedGames.length}
-                      </p>
-                    </div>
-
-                    <div className="rounded-[22px] border border-white/10 bg-white/[0.04] p-4">
-                      <p className="text-sm text-[#94A3B8]">Pending payments</p>
-                      <p className="mt-2 text-[1.8rem] font-semibold tracking-[-0.04em] text-white">
-                        {pendingPayments.length}
-                      </p>
-                    </div>
-
-                    <div className="rounded-[22px] border border-white/10 bg-white/[0.04] p-4">
-                      <p className="text-sm text-[#94A3B8]">Saved phone</p>
-                      <p className="mt-2 truncate text-lg font-semibold text-white">
-                        {user.phone || "Add your phone"}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            ))}
           </div>
-        </div>
+        </FadeIn>
       </section>
 
-      <section className="container pb-16">
-        <div className="space-y-6">
-          <AccountProfileCard
-            initialName={user.name}
-            initialEmail={user.email || ""}
-            initialPhone={user.phone || ""}
-          />
+      {/* ── CONTENT ──────────────────────────────────────────────────── */}
+      <section className="container pb-24">
+        <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
 
-          <div className="grid gap-6 lg:grid-cols-2">
-            <AccountBookingsSection initialBookings={bookings} />
+          <FadeIn delay={0.06}>
+            <AccountProfileCard
+              initialName={user.name}
+              initialEmail={user.email || ""}
+              initialPhone={user.phone || ""}
+            />
+          </FadeIn>
 
-            <div className="rounded-[30px] border border-white/10 bg-[rgba(13,19,26,0.92)] p-5 shadow-[0_16px_40px_rgba(0,0,0,0.18)] md:p-6">
-              <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                <div>
-                  <p className="text-sm uppercase tracking-[0.18em] text-[#B8FF3B]">
-                    Joined games
-                  </p>
-                  <p className="mt-2 text-2xl font-semibold text-white">
-                    Open game activity
-                  </p>
-                  <p className="mt-2 text-sm leading-7 text-[#94A3B8]">
-                    Keep track of the matches you joined and how close each one
-                    is to filling up.
-                  </p>
-                </div>
+          <div className="grid gap-6 lg:grid-cols-2 items-start">
 
-                <div className="rounded-[20px] border border-white/10 bg-white/[0.04] px-4 py-3">
-                  <p className="text-sm text-[#94A3B8]">Active joins</p>
-                  <p className="mt-1 text-lg font-semibold text-white">
+            <FadeIn delay={0.1}>
+              <AccountBookingsSection initialBookings={bookings} />
+            </FadeIn>
+
+            {/* Joined games */}
+            <FadeIn delay={0.14}>
+              <div
+                style={{
+                  border: "1px solid var(--line)",
+                  borderRadius: "20px",
+                  background: "var(--bg-soft)",
+                  overflow: "hidden",
+                }}
+              >
+                {/* Header */}
+                <div
+                  style={{
+                    padding: "1.375rem 1.75rem",
+                    borderBottom: "1px solid var(--line)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: "1rem",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <div>
+                    <span className="eyebrow">Joined games</span>
+                    <p style={{ fontSize: "18px", fontWeight: 600, color: "var(--fg)", letterSpacing: "-0.03em", marginTop: "0.375rem" }}>
+                      Open game activity
+                    </p>
+                    <p style={{ fontSize: "13px", color: "var(--fg-3)", marginTop: 4, lineHeight: 1.5 }}>
+                      Games you joined and their current fill status.
+                    </p>
+                  </div>
+                  <span style={{ fontFamily: "var(--f-mono)", fontSize: "32px", fontWeight: 600, letterSpacing: "-0.04em", color: "var(--fg-dim)", lineHeight: 1 }}>
                     {joinedGames.length}
-                  </p>
+                  </span>
+                </div>
+
+                {joinedGames.length === 0 ? (
+                  <div style={{ padding: "2rem 1.75rem" }}>
+                    <StatePanel
+                      eyebrow="No joined games yet"
+                      title="Your open-game activity will appear here"
+                      text="Once you join an open game, this space will show the host, player count, and current status."
+                      className="rounded-[20px] p-5 shadow-none"
+                    />
+                  </div>
+                ) : (
+                  <div style={{ padding: "0 1.75rem" }}>
+                    {joinedGames.map((join) => {
+                      const spotsLeft = join.openGame.maxPlayers - join.openGame.currentPlayers;
+                      return (
+                        <div
+                          key={join.id}
+                          style={{ borderTop: "1px solid var(--line)", padding: "1.375rem 0" }}
+                        >
+                          {/* Date + status */}
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap", marginBottom: "0.75rem" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                              <CalendarDays size={13} style={{ color: "var(--fg-dim)" }} />
+                              <span style={{ fontFamily: "var(--f-mono)", fontSize: "11px", color: "var(--fg-dim)", letterSpacing: "0.06em" }}>
+                                {format(new Date(join.openGame.booking.bookingDate), "EEE, MMM d")}
+                              </span>
+                            </div>
+                            <span
+                              style={{
+                                fontSize: "11px",
+                                fontWeight: 500,
+                                padding: "3px 10px",
+                                borderRadius: "999px",
+                                border: "1px solid rgba(255,255,255,0.1)",
+                                color: statusColor(join.openGame.status),
+                              }}
+                            >
+                              {statusLabel(join.openGame.status)}
+                            </span>
+                          </div>
+
+                          {/* Time */}
+                          <p style={{ fontSize: "clamp(18px,2vw,22px)", fontWeight: 600, letterSpacing: "-0.04em", color: "var(--fg)" }}>
+                            {formatSlotRange(join.openGame.booking.slots)}
+                          </p>
+
+                          {/* Meta */}
+                          <div
+                            style={{
+                              marginTop: "0.875rem",
+                              paddingTop: "0.875rem",
+                              borderTop: "1px solid var(--line-soft, rgba(255,255,255,0.06))",
+                              display: "flex",
+                              flexWrap: "wrap",
+                              gap: "1.25rem",
+                            }}
+                          >
+                            {[
+                              { label: "Host", value: join.openGame.booking.user.name },
+                              { label: "Your players", value: `${join.playersJoined}` },
+                              { label: "Fill", value: `${join.openGame.currentPlayers} / ${join.openGame.maxPlayers}` },
+                              { label: "Spots left", value: spotsLeft === 0 ? "Full squad" : `${spotsLeft}` },
+                            ].map((item) => (
+                              <div key={item.label}>
+                                <span style={{ fontFamily: "var(--f-mono)", fontSize: "10px", letterSpacing: "0.12em", textTransform: "uppercase" as const, color: "var(--fg-dim)", display: "block" }}>
+                                  {item.label}
+                                </span>
+                                <span style={{ fontSize: "13px", color: "var(--fg-3)", marginTop: 3, display: "block" }}>
+                                  {item.value}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Footer link */}
+                <div style={{ padding: "1rem 1.75rem", borderTop: "1px solid var(--line)" }}>
+                  <Link href="/games" className="btn-text" style={{ fontSize: "13px" }}>
+                    Browse open games <ArrowRight size={13} />
+                  </Link>
                 </div>
               </div>
+            </FadeIn>
 
-              {joinedGames.length === 0 ? (
-                <StatePanel
-                  eyebrow="No joined games yet"
-                  title="Your open-game activity will appear here"
-                  text="Once you join an open game, this space will show the host, player count, and current status so you can track it easily."
-                  className="rounded-[24px] p-5 shadow-none"
-                />
-              ) : (
-                <div className="space-y-4">
-                  {joinedGames.map((join) => {
-                    const spotsLeft =
-                      join.openGame.maxPlayers - join.openGame.currentPlayers;
-
-                    return (
-                      <div
-                        key={join.id}
-                        className="rounded-[26px] border border-white/10 bg-white/[0.04] p-5"
-                      >
-                        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                          <div>
-                            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-[#C9D2DC]">
-                              <CalendarDays
-                                size={13}
-                                className="text-[#B8FF3B]"
-                              />
-                              {format(
-                                new Date(join.openGame.booking.bookingDate),
-                                "EEEE, MMM d",
-                              )}
-                            </div>
-
-                            <p className="mt-4 text-[1.4rem] font-semibold tracking-[-0.03em] text-white">
-                              {formatSlotRange(join.openGame.booking.slots)}
-                            </p>
-                          </div>
-
-                          <span
-                            className={`inline-flex rounded-full border px-3 py-1 text-xs ${statusClasses(
-                              join.openGame.status,
-                            )}`}
-                          >
-                            {statusLabel(join.openGame.status)}
-                          </span>
-                        </div>
-
-                        <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                          <div className="rounded-[20px] border border-white/10 bg-[#121821] px-4 py-3">
-                            <p className="text-sm text-[#94A3B8]">Hosted by</p>
-                            <p className="mt-1 text-white">
-                              {join.openGame.booking.user.name}
-                            </p>
-                          </div>
-
-                          <div className="rounded-[20px] border border-white/10 bg-[#121821] px-4 py-3">
-                            <p className="text-sm text-[#94A3B8]">
-                              You joined with
-                            </p>
-                            <p className="mt-1 text-white">
-                              {join.playersJoined} player
-                              {join.playersJoined > 1 ? "s" : ""}
-                            </p>
-                          </div>
-
-                          <div className="rounded-[20px] border border-white/10 bg-[#121821] px-4 py-3">
-                            <p className="text-sm text-[#94A3B8]">
-                              Current players
-                            </p>
-                            <p className="mt-1 text-white">
-                              {join.openGame.currentPlayers} /{" "}
-                              {join.openGame.maxPlayers}
-                            </p>
-                          </div>
-
-                          <div className="rounded-[20px] border border-white/10 bg-[#121821] px-4 py-3">
-                            <p className="text-sm text-[#94A3B8]">Game progress</p>
-                            <p className="mt-1 text-white">
-                              {spotsLeft === 0
-                                ? "Full squad"
-                                : `${spotsLeft} spot${spotsLeft > 1 ? "s" : ""} left`}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
           </div>
         </div>
       </section>
+
     </main>
   );
 }

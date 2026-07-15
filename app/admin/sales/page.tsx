@@ -2,15 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import {
-  ArrowRight,
-  CircleDollarSign,
-  CreditCard,
-  ReceiptText,
-  Wallet,
-} from "lucide-react";
+import { ArrowRight, CircleDollarSign, CreditCard, ReceiptText, Wallet } from "lucide-react";
 import FadeIn from "@/components/ui/fade-in";
-import SectionHeading from "@/components/ui/section-heading";
 import StatePanel from "@/components/ui/state-panel";
 import { getErrorMessage } from "@/lib/utils/error-message";
 
@@ -20,9 +13,7 @@ type Booking = {
   totalPrice: number;
   createdAt: string;
   paymentStatus: "PENDING" | "PAID";
-  user: {
-    name: string;
-  };
+  user: { name: string };
 };
 
 type SalesResponse = {
@@ -35,15 +26,37 @@ type SalesResponse = {
   bookings: Booking[];
 };
 
-function paymentBadge(paymentStatus: Booking["paymentStatus"]) {
-  return paymentStatus === "PAID"
-    ? "border-[#1E4D33] bg-[#10261B] text-[#7EF7C1]"
-    : "border-[#6C5A14] bg-[#2B2411] text-[#F4D35E]";
+function StatusBadge({ color, children }: { color: string; children: React.ReactNode }) {
+  return (
+    <span
+      style={{
+        fontSize: "11px",
+        fontWeight: 500,
+        padding: "3px 10px",
+        borderRadius: "999px",
+        border: "1px solid rgba(255,255,255,0.1)",
+        color,
+        whiteSpace: "nowrap",
+      }}
+    >
+      {children}
+    </span>
+  );
 }
 
-function bookingTypeLabel(type: Booking["bookingType"]) {
-  return type === "PRIVATE" ? "Private game" : "Open game";
+function MetaLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <span style={{ fontFamily: "var(--f-mono)", fontSize: "10px", letterSpacing: "0.12em", textTransform: "uppercase" as const, color: "var(--fg-dim)", display: "block" }}>
+      {children}
+    </span>
+  );
 }
+
+const quickLinks = [
+  { label: "Dashboard", href: "/admin" },
+  { label: "Bookings", href: "/admin/bookings" },
+  { label: "Open Games", href: "/admin/open-games" },
+];
 
 export default function AdminSalesPage() {
   const [data, setData] = useState<SalesResponse | null>(null);
@@ -53,167 +66,106 @@ export default function AdminSalesPage() {
   const fetchSales = async () => {
     try {
       setError("");
-      const res = await fetch("/api/admin/sales", {
-        cache: "no-store",
-      });
-
+      const res = await fetch("/api/admin/sales", { cache: "no-store" });
       const json = await res.json();
-
-      if (!res.ok) {
-        throw new Error(json?.error || "Failed to load sales");
-      }
-
+      if (!res.ok) throw new Error(json?.error || "Failed to load sales");
       setData(json);
-    } catch (fetchError: unknown) {
-      setError(getErrorMessage(fetchError, "Failed to load sales"));
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Failed to load sales"));
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchSales();
-  }, []);
+  useEffect(() => { fetchSales(); }, []);
 
   const bookingCount = data?.bookings.length ?? 0;
-  const paidCount = useMemo(
-    () => data?.bookings.filter((booking) => booking.paymentStatus === "PAID").length ?? 0,
-    [data],
-  );
-  const pendingCount = useMemo(
-    () =>
-      data?.bookings.filter((booking) => booking.paymentStatus === "PENDING")
-        .length ?? 0,
-    [data],
-  );
+  const paidCount = useMemo(() => data?.bookings.filter((b) => b.paymentStatus === "PAID").length ?? 0, [data]);
+  const pendingCount = useMemo(() => data?.bookings.filter((b) => b.paymentStatus === "PENDING").length ?? 0, [data]);
 
-  const quickLinks = [
-    {
-      label: "Dashboard",
-      href: "/admin",
-    },
-    {
-      label: "Bookings",
-      href: "/admin/bookings",
-    },
-    {
-      label: "Open Games",
-      href: "/admin/open-games",
-    },
+  const headerStats = [
+    { label: "Total revenue", value: `NPR ${(data?.totalRevenue ?? 0).toLocaleString()}` },
+    { label: "Collected", value: `NPR ${(data?.collectedRevenue ?? 0).toLocaleString()}` },
+    { label: "Pending", value: `NPR ${(data?.pendingRevenue ?? 0).toLocaleString()}` },
+    { label: "Bookings", value: String(bookingCount) },
+  ];
+
+  const revenueCards = [
+    { title: "Collected today", value: `NPR ${(data?.collectedRevenue ?? 0).toLocaleString()}`, meta: `${paidCount} paid booking${paidCount === 1 ? "" : "s"}`, icon: CircleDollarSign },
+    { title: "Pending today", value: `NPR ${(data?.pendingRevenue ?? 0).toLocaleString()}`, meta: `${pendingCount} booking${pendingCount === 1 ? "" : "s"} still unpaid`, icon: CreditCard },
+    { title: "Private revenue", value: `NPR ${(data?.privateRevenue ?? 0).toLocaleString()}`, meta: "Private-game contribution", icon: ReceiptText },
+    { title: "Open revenue", value: `NPR ${(data?.openRevenue ?? 0).toLocaleString()}`, meta: "Open-game contribution", icon: Wallet },
   ];
 
   return (
     <main className="min-h-screen pb-20">
       <section className="container py-8 md:py-12">
+
+        {/* ── PAGE HEADER ─────────────────────────────────────────────── */}
         <FadeIn>
-          <SectionHeading
-            eyebrow="Admin"
-            title="Sales overview"
-            text="Track today's collected revenue, pending payments, and the booking mix driving venue income."
-          />
+          <span className="eyebrow">Admin</span>
+          <h1
+            style={{
+              fontFamily: "var(--f-sans)",
+              fontWeight: 700,
+              fontSize: "clamp(2rem,4.5vw,3.8rem)",
+              letterSpacing: "-0.055em",
+              lineHeight: 0.96,
+              color: "var(--fg)",
+              marginTop: "1rem",
+            }}
+          >
+            Sales overview.
+          </h1>
+          <p style={{ marginTop: "1rem", fontSize: "16px", lineHeight: 1.7, color: "var(--fg-3)", maxWidth: "52ch" }}>
+            Track today&apos;s collected revenue, pending payments, and the booking mix driving venue income.
+          </p>
         </FadeIn>
 
-        <FadeIn delay={0.04}>
-          <div className="relative overflow-hidden rounded-[38px] border border-white/10 bg-[rgba(10,14,19,0.78)] p-6 shadow-[0_20px_60px_rgba(0,0,0,0.26)] backdrop-blur-2xl md:p-8">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_16%_22%,rgba(184,255,59,0.08),transparent_18%),radial-gradient(circle_at_82%_24%,rgba(140,201,255,0.08),transparent_18%),linear-gradient(135deg,rgba(255,255,255,0.04),transparent_45%)]" />
-            <div className="absolute inset-x-0 top-0 h-px bg-white/12" />
-
-            <div className="relative z-10 grid gap-8 xl:grid-cols-[1.1fr_0.9fr]">
-              <div>
-                <div className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-[rgba(18,22,28,0.24)] px-4 py-2 shadow-[0_10px_24px_rgba(0,0,0,0.16)] backdrop-blur-xl">
-                  <span className="h-2.5 w-2.5 rounded-full bg-[#B8FF3B] shadow-[0_0_14px_rgba(184,255,59,0.55)]" />
-                  <span className="text-xs font-medium uppercase tracking-[0.18em] text-[#B8FF3B]">
-                    Daily revenue pulse
-                  </span>
-                </div>
-
-                <h1 className="mt-5 text-[2.35rem] font-semibold leading-[1.02] tracking-[-0.05em] text-white md:text-[4rem]">
-                  Know what has been collected, what is still pending, and where today&apos;s money is coming from.
-                </h1>
-
-                <p className="mt-5 max-w-2xl text-[15px] leading-8 text-[#94A3B8] md:text-base">
-                  This view focuses on today&apos;s booking revenue so you can
-                  follow up on unpaid bookings and see whether private or open
-                  games are driving the day.
-                </p>
-
-                <div className="mt-6 flex flex-wrap gap-3 text-sm text-[#C9D2DC]">
-                  <div className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2">
-                    {bookingCount} booking{bookingCount === 1 ? "" : "s"} tracked
-                  </div>
-                  <div className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2">
-                    {paidCount} paid
-                  </div>
-                  <div className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2">
-                    {pendingCount} pending
-                  </div>
-                </div>
+        {/* ── STATS STRIP ─────────────────────────────────────────────── */}
+        <FadeIn delay={0.05}>
+          <div
+            style={{
+              marginTop: "2rem",
+              display: "grid",
+              gridTemplateColumns: `repeat(${headerStats.length}, 1fr)`,
+              borderTop: "1px solid var(--line)",
+              borderBottom: "1px solid var(--line)",
+              marginBottom: "2rem",
+            }}
+          >
+            {headerStats.map((s, i) => (
+              <div
+                key={s.label}
+                style={{
+                  padding: "1rem 0",
+                  paddingLeft: i === 0 ? 0 : "1.25rem",
+                  paddingRight: i === headerStats.length - 1 ? 0 : "1.25rem",
+                  borderRight: i < headerStats.length - 1 ? "1px solid var(--line)" : undefined,
+                }}
+              >
+                <span style={{ fontFamily: "var(--f-mono)", fontSize: "10px", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--fg-dim)", display: "block", marginBottom: "0.375rem" }}>
+                  {s.label}
+                </span>
+                <span style={{ fontFamily: "var(--f-mono)", fontSize: "clamp(18px,2vw,28px)", fontWeight: 600, letterSpacing: "-0.04em", color: "var(--fg)", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
+                  {s.value}
+                </span>
               </div>
-
-              <div className="overflow-hidden rounded-[30px] border border-white/12 bg-[rgba(20,24,30,0.32)] shadow-[0_20px_60px_rgba(0,0,0,0.24),0_0_30px_rgba(184,255,59,0.06)] backdrop-blur-2xl">
-                <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.14),rgba(255,255,255,0.03)_45%,rgba(255,255,255,0.02)_100%)]" />
-                <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-white/18" />
-
-                <div className="relative p-5 md:p-6">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-[18px] border border-white/10 bg-white/[0.08] text-[#B8FF3B]">
-                      <Wallet size={20} />
-                    </div>
-                    <div>
-                      <p className="text-sm text-[#D7DEE7]">Today&apos;s headline</p>
-                      <p className="text-lg font-semibold text-white">
-                        Revenue snapshot
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                    <div className="rounded-[22px] border border-white/10 bg-white/[0.04] p-4">
-                      <p className="text-sm text-[#94A3B8]">Total revenue</p>
-                      <p className="mt-2 text-[1.8rem] font-semibold tracking-[-0.04em] text-white">
-                        NPR {data?.totalRevenue ?? 0}
-                      </p>
-                    </div>
-
-                    <div className="rounded-[22px] border border-white/10 bg-white/[0.04] p-4">
-                      <p className="text-sm text-[#94A3B8]">Collected</p>
-                      <p className="mt-2 text-[1.8rem] font-semibold tracking-[-0.04em] text-white">
-                        NPR {data?.collectedRevenue ?? 0}
-                      </p>
-                    </div>
-
-                    <div className="rounded-[22px] border border-white/10 bg-white/[0.04] p-4">
-                      <p className="text-sm text-[#94A3B8]">Pending</p>
-                      <p className="mt-2 text-[1.8rem] font-semibold tracking-[-0.04em] text-white">
-                        NPR {data?.pendingRevenue ?? 0}
-                      </p>
-                    </div>
-
-                    <div className="rounded-[22px] border border-white/10 bg-white/[0.04] p-4">
-                      <p className="text-sm text-[#94A3B8]">Bookings counted</p>
-                      <p className="mt-2 text-[1.8rem] font-semibold tracking-[-0.04em] text-white">
-                        {bookingCount}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            ))}
           </div>
         </FadeIn>
 
+        {/* ── ERROR ───────────────────────────────────────────────────── */}
         {error && (
-          <div className="mt-6">
+          <div style={{ marginBottom: "1.5rem" }}>
             <StatePanel
               variant="error"
-              eyebrow="Couldn’t load sales"
+              eyebrow="Couldn't load sales"
               title="The sales dashboard is temporarily unavailable"
               text={error}
               actions={
                 <Link href="/admin/bookings">
-                  <span className="inline-flex rounded-[999px] border border-white/10 bg-white/[0.04] px-5 py-3 text-sm text-white transition hover:bg-white/[0.08]">
-                    Check Bookings Instead
-                  </span>
+                  <span className="btn btn-ghost btn-sm">Check bookings instead</span>
                 </Link>
               }
             />
@@ -221,142 +173,113 @@ export default function AdminSalesPage() {
         )}
 
         {loading ? (
-          <div className="mt-8">
-            <StatePanel
-              variant="loading"
-              eyebrow="Loading"
-              title="Calculating today’s revenue"
-              text="We’re pulling bookings, payment states, and today’s collection totals."
-            />
-          </div>
+          <StatePanel
+            variant="loading"
+            eyebrow="Loading"
+            title="Calculating today's revenue"
+            text="Pulling bookings, payment states, and today's collection totals."
+          />
         ) : data ? (
-          <>
-            <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              {[
-                {
-                  title: "Collected Today",
-                  value: `NPR ${data.collectedRevenue}`,
-                  meta: `${paidCount} paid booking${paidCount === 1 ? "" : "s"}`,
-                  icon: CircleDollarSign,
-                },
-                {
-                  title: "Pending Today",
-                  value: `NPR ${data.pendingRevenue}`,
-                  meta: `${pendingCount} booking${pendingCount === 1 ? "" : "s"} still unpaid`,
-                  icon: CreditCard,
-                },
-                {
-                  title: "Private Revenue",
-                  value: `NPR ${data.privateRevenue}`,
-                  meta: "Private-game contribution",
-                  icon: ReceiptText,
-                },
-                {
-                  title: "Open Revenue",
-                  value: `NPR ${data.openRevenue}`,
-                  meta: "Open-game contribution",
-                  icon: Wallet,
-                },
-              ].map((item, index) => (
-                <FadeIn key={item.title} delay={0.06 + index * 0.03}>
-                  <div className="card-strong rounded-[28px] p-5">
-                    <div className="flex items-start justify-between gap-4">
+          <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+
+            {/* Revenue breakdown cards */}
+            <FadeIn delay={0.08}>
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                {revenueCards.map((item) => (
+                  <div
+                    key={item.title}
+                    style={{ border: "1px solid var(--line)", borderRadius: "16px", background: "var(--bg-soft)", padding: "1.25rem" }}
+                  >
+                    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "0.75rem" }}>
                       <div>
-                        <p className="text-sm text-[#94A3B8]">{item.title}</p>
-                        <p className="mt-2 text-[1.75rem] font-semibold tracking-[-0.04em] text-white">
+                        <MetaLabel>{item.title}</MetaLabel>
+                        <p style={{ fontFamily: "var(--f-mono)", fontSize: "clamp(20px,2vw,26px)", fontWeight: 600, letterSpacing: "-0.04em", color: "var(--fg)", marginTop: "0.5rem", fontVariantNumeric: "tabular-nums" }}>
                           {item.value}
                         </p>
-                        <p className="mt-2 text-sm leading-7 text-[#94A3B8]">
-                          {item.meta}
-                        </p>
+                        <p style={{ fontSize: "12px", color: "var(--fg-dim)", marginTop: "0.375rem" }}>{item.meta}</p>
                       </div>
-                      <div className="flex h-12 w-12 items-center justify-center rounded-[18px] border border-white/10 bg-white/[0.05] text-[#B8FF3B]">
-                        <item.icon size={20} />
+                      <div style={{ width: 36, height: 36, borderRadius: "10px", border: "1px solid var(--line)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--fg-dim)", flexShrink: 0 }}>
+                        <item.icon size={16} />
                       </div>
                     </div>
                   </div>
-                </FadeIn>
-              ))}
-            </div>
+                ))}
+              </div>
+            </FadeIn>
 
-            <div className="mt-8 grid gap-6 xl:grid-cols-[1.08fr_0.92fr]">
-              <FadeIn delay={0.14}>
-                <div className="card-strong rounded-[32px] p-5 md:p-6">
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <p className="text-sm uppercase tracking-[0.18em] text-[#B8FF3B]">
-                        Revenue mix
-                      </p>
-                      <p className="mt-2 text-2xl font-semibold text-white">
-                        Where today&apos;s revenue came from
-                      </p>
-                    </div>
-                  </div>
+            {/* Revenue mix + Quick links */}
+            <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr] items-start">
 
-                  <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                    <div className="rounded-[24px] border border-white/10 bg-white/[0.04] p-5">
-                      <p className="text-sm text-[#94A3B8]">Private games</p>
-                      <p className="mt-2 text-[2rem] font-semibold tracking-[-0.04em] text-white">
-                        NPR {data.privateRevenue}
-                      </p>
-                      <p className="mt-3 text-sm leading-7 text-[#94A3B8]">
-                        Best for exclusive bookings and larger single-party revenue.
-                      </p>
-                    </div>
-
-                    <div className="rounded-[24px] border border-white/10 bg-white/[0.04] p-5">
-                      <p className="text-sm text-[#94A3B8]">Open games</p>
-                      <p className="mt-2 text-[2rem] font-semibold tracking-[-0.04em] text-white">
-                        NPR {data.openRevenue}
-                      </p>
-                      <p className="mt-3 text-sm leading-7 text-[#94A3B8]">
-                        Useful for community fill and extra participation on open slots.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="mt-5 rounded-[24px] border border-white/10 bg-white/[0.04] p-5">
-                    <div className="flex items-center justify-between gap-4">
-                      <p className="text-sm text-[#94A3B8]">Collection health</p>
-                      <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-[#D7DEE7]">
-                        {bookingCount > 0
-                          ? `${Math.round((paidCount / bookingCount) * 100)}% paid`
-                          : "No bookings"}
-                      </span>
-                    </div>
-
-                    <p className="mt-3 text-sm leading-7 text-[#94A3B8]">
-                      {pendingCount > 0
-                        ? "There are still unpaid bookings to follow up before the day closes."
-                        : "All tracked bookings for today are already marked paid."}
+              {/* Revenue mix */}
+              <FadeIn delay={0.12}>
+                <div style={{ border: "1px solid var(--line)", borderRadius: "20px", background: "var(--bg-soft)", overflow: "hidden" }}>
+                  <div style={{ padding: "1.375rem 1.75rem", borderBottom: "1px solid var(--line)" }}>
+                    <span className="eyebrow">Revenue mix</span>
+                    <p style={{ fontSize: "18px", fontWeight: 600, color: "var(--fg)", letterSpacing: "-0.03em", marginTop: "0.375rem" }}>
+                      Where today&apos;s revenue came from
                     </p>
+                  </div>
+                  <div style={{ padding: "0 1.75rem" }}>
+                    {[
+                      { label: "Private games", value: `NPR ${(data.privateRevenue).toLocaleString()}`, note: "Exclusive bookings and larger single-party revenue" },
+                      { label: "Open games", value: `NPR ${(data.openRevenue).toLocaleString()}`, note: "Community fill and extra participation on open slots" },
+                      {
+                        label: "Collection health",
+                        value: bookingCount > 0 ? `${Math.round((paidCount / bookingCount) * 100)}% paid` : "No bookings",
+                        note: pendingCount > 0 ? `${pendingCount} unpaid booking${pendingCount > 1 ? "s" : ""} to follow up before the day closes` : "All tracked bookings are already marked paid",
+                      },
+                    ].map((item, i) => (
+                      <div
+                        key={item.label}
+                        style={{
+                          borderTop: i > 0 ? "1px solid var(--line)" : undefined,
+                          padding: "1.125rem 0",
+                          display: "flex",
+                          alignItems: "flex-start",
+                          justifyContent: "space-between",
+                          gap: "1rem",
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <MetaLabel>{item.label}</MetaLabel>
+                          <p style={{ fontSize: "12px", color: "var(--fg-dim)", marginTop: "0.375rem", lineHeight: 1.55 }}>{item.note}</p>
+                        </div>
+                        <span style={{ fontFamily: "var(--f-mono)", fontSize: "15px", fontWeight: 600, color: "var(--fg)", letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>
+                          {item.value}
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </FadeIn>
 
-              <FadeIn delay={0.18}>
-                <div className="card-strong rounded-[32px] p-5 md:p-6">
-                  <div>
-                    <p className="text-sm uppercase tracking-[0.18em] text-[#B8FF3B]">
-                      Links
-                    </p>
-                    <p className="mt-2 text-2xl font-semibold text-white">
-                      Move quickly between admin tools
+              {/* Quick links */}
+              <FadeIn delay={0.14}>
+                <div style={{ border: "1px solid var(--line)", borderRadius: "20px", background: "var(--bg-soft)", overflow: "hidden" }}>
+                  <div style={{ padding: "1.375rem 1.75rem", borderBottom: "1px solid var(--line)" }}>
+                    <span className="eyebrow">Navigation</span>
+                    <p style={{ fontSize: "18px", fontWeight: 600, color: "var(--fg)", letterSpacing: "-0.03em", marginTop: "0.375rem" }}>
+                      Move between admin tools
                     </p>
                   </div>
-
-                  <div className="mt-5 space-y-3">
-                    {quickLinks.map((link) => (
+                  <div style={{ padding: "0 1.75rem" }}>
+                    {quickLinks.map((link, i) => (
                       <Link
                         key={link.href}
                         href={link.href}
-                        className="group flex items-center justify-between rounded-[22px] border border-white/10 bg-white/[0.04] px-4 py-4 text-sm text-white transition hover:border-white/14 hover:bg-white/[0.06]"
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          gap: "0.75rem",
+                          padding: "1rem 0",
+                          borderTop: i > 0 ? "1px solid var(--line)" : undefined,
+                          textDecoration: "none",
+                        }}
                       >
-                        <span>{link.label}</span>
-                        <ArrowRight
-                          size={16}
-                          className="text-[#B8FF3B] transition-transform duration-300 group-hover:translate-x-1"
-                        />
+                        <span style={{ fontSize: "14px", fontWeight: 500, color: "var(--fg)" }}>{link.label}</span>
+                        <ArrowRight size={14} style={{ color: "var(--fg-dim)", flexShrink: 0 }} />
                       </Link>
                     ))}
                   </div>
@@ -364,70 +287,59 @@ export default function AdminSalesPage() {
               </FadeIn>
             </div>
 
-            <FadeIn delay={0.22}>
-              <div className="mt-8 card-strong rounded-[32px] p-5 md:p-6">
-                <div className="flex items-center justify-between gap-4">
+            {/* Booking ledger */}
+            <FadeIn delay={0.18}>
+              <div style={{ border: "1px solid var(--line)", borderRadius: "20px", background: "var(--bg-soft)", overflow: "hidden" }}>
+                <div style={{ padding: "1.375rem 1.75rem", borderBottom: "1px solid var(--line)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                   <div>
-                    <p className="text-sm uppercase tracking-[0.18em] text-[#B8FF3B]">
-                      Booking ledger
-                    </p>
-                    <p className="mt-2 text-2xl font-semibold text-white">
+                    <span className="eyebrow">Booking ledger</span>
+                    <p style={{ fontSize: "18px", fontWeight: 600, color: "var(--fg)", letterSpacing: "-0.03em", marginTop: "0.375rem" }}>
                       Today&apos;s revenue activity
                     </p>
                   </div>
+                  <span style={{ fontFamily: "var(--f-mono)", fontSize: "28px", fontWeight: 600, letterSpacing: "-0.04em", color: "var(--fg-dim)", lineHeight: 1 }}>
+                    {bookingCount}
+                  </span>
                 </div>
 
-                <div className="mt-5 space-y-3">
+                <div style={{ padding: "0 1.75rem" }}>
                   {data.bookings.length === 0 ? (
-                    <StatePanel
-                      title="No sales recorded for today"
-                      text="As bookings are created for today, they’ll appear here with payment status and amount."
-                      className="rounded-[22px] p-4 shadow-none"
-                    />
+                    <div style={{ padding: "2rem 0" }}>
+                      <StatePanel
+                        title="No sales recorded for today"
+                        text="As bookings are created for today, they'll appear here with payment status and amount."
+                        className="rounded-[20px] p-5 shadow-none"
+                      />
+                    </div>
                   ) : (
                     data.bookings.map((booking) => (
                       <div
                         key={booking.id}
-                        className="rounded-[22px] border border-white/10 bg-white/[0.04] p-4"
+                        style={{ borderTop: "1px solid var(--line)", padding: "1.125rem 0", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}
                       >
-                        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                          <div className="min-w-0">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <p className="text-base font-medium text-white">
-                                {booking.user.name}
-                              </p>
-                              <span className="inline-flex rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-[#D7DEE7]">
-                                {bookingTypeLabel(booking.bookingType)}
-                              </span>
-                              <span
-                                className={`inline-flex rounded-full border px-3 py-1 text-xs ${paymentBadge(
-                                  booking.paymentStatus,
-                                )}`}
-                              >
-                                {booking.paymentStatus === "PAID" ? "Paid" : "Pending"}
-                              </span>
-                            </div>
-                            <p className="mt-2 text-sm text-[#94A3B8]">
-                              {new Date(booking.createdAt).toLocaleTimeString()}
-                            </p>
+                        <div>
+                          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap", marginBottom: "0.375rem" }}>
+                            <p style={{ fontSize: "14px", fontWeight: 600, color: "var(--fg)" }}>{booking.user.name}</p>
+                            <StatusBadge color="var(--fg-dim)">{booking.bookingType === "PRIVATE" ? "Private" : "Open"}</StatusBadge>
+                            <StatusBadge color={booking.paymentStatus === "PAID" ? "var(--accent)" : "#F4D35E"}>
+                              {booking.paymentStatus === "PAID" ? "Paid" : "Pending"}
+                            </StatusBadge>
                           </div>
-
-                          <div className="rounded-[18px] border border-white/10 bg-[#121821] px-4 py-3 text-right">
-                            <p className="text-xs text-[#94A3B8]">Amount</p>
-                            <p className="mt-1 text-sm font-medium text-white">
-                              NPR {booking.totalPrice}
-                            </p>
-                          </div>
+                          <p style={{ fontSize: "12px", color: "var(--fg-dim)" }}>
+                            {new Date(booking.createdAt).toLocaleTimeString()}
+                          </p>
                         </div>
+                        <span style={{ fontFamily: "var(--f-mono)", fontSize: "15px", fontWeight: 600, color: "var(--fg)", letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums" }}>
+                          NPR {booking.totalPrice.toLocaleString()}
+                        </span>
                       </div>
                     ))
                   )}
                 </div>
               </div>
             </FadeIn>
-          </>
+          </div>
         ) : null}
-
       </section>
     </main>
   );

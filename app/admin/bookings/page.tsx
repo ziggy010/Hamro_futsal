@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { CalendarDays, Phone, Search, User } from "lucide-react";
-import Button from "@/components/ui/button";
 import StatePanel from "@/components/ui/state-panel";
 import { getErrorMessage } from "@/lib/utils/error-message";
 
@@ -22,18 +21,8 @@ type BookingApi = {
   paidAt?: string | null;
   totalPrice: number;
   createdAt: string;
-  user: {
-    id: string;
-    name: string;
-    phone: string;
-    email?: string | null;
-  };
-  slots: {
-    id: string;
-    startHour: number;
-    endHour: number;
-    price: number;
-  }[];
+  user: { id: string; name: string; phone: string; email?: string | null };
+  slots: { id: string; startHour: number; endHour: number; price: number }[];
   openGame?: {
     id: string;
     status: "PENDING_FILL" | "CONFIRMED" | "FULL" | "EXPIRED" | "CANCELLED";
@@ -48,52 +37,37 @@ function hourTo12(hour: number) {
   return `${normalized}:00 ${suffix}`;
 }
 
-function formatSlotRange(
-  slots: { startHour: number; endHour: number }[] | undefined,
-) {
+function formatSlotRange(slots: { startHour: number; endHour: number }[] | undefined) {
   if (!slots?.length) return "Time unavailable";
-
   const sorted = [...slots].sort((a, b) => a.startHour - b.startHour);
-  const first = sorted[0];
-  const last = sorted[sorted.length - 1];
-
-  return `${hourTo12(first.startHour)} – ${hourTo12(last.endHour)}`;
+  return `${hourTo12(sorted[0].startHour)} – ${hourTo12(sorted[sorted.length - 1].endHour)}`;
 }
 
 function formatDateLabel(dateString: string) {
   const date = new Date(dateString);
   if (Number.isNaN(date.getTime())) return "Unknown date";
-  return date.toLocaleDateString("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-  });
+  return date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
 }
 
 function isBookingFinished(booking: BookingApi) {
   const now = new Date();
-
   const bookingDate = new Date(booking.bookingDate);
   bookingDate.setHours(0, 0, 0, 0);
-
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-
-  if (bookingDate.getTime() < today.getTime()) {
-    return true;
-  }
-
-  if (bookingDate.getTime() > today.getTime()) {
-    return false;
-  }
-
-  const lastEndHour = Math.max(...booking.slots.map((slot) => slot.endHour));
-  const currentHour = now.getHours();
-
-  return currentHour >= lastEndHour;
+  if (bookingDate.getTime() < today.getTime()) return true;
+  if (bookingDate.getTime() > today.getTime()) return false;
+  const lastEndHour = Math.max(...booking.slots.map((s) => s.endHour));
+  return now.getHours() >= lastEndHour;
 }
 
-function statusLabel(status: BookingApi["status"]) {
+function statusColor(status: BookingApi["status"]): string {
+  if (status === "PRIVATE_CONFIRMED" || status === "OPEN_CONFIRMED") return "var(--accent)";
+  if (status === "OPEN_PENDING_FILL") return "#F4D35E";
+  return "rgba(255,150,150,0.8)";
+}
+
+function statusLabel(status: BookingApi["status"]): string {
   if (status === "PRIVATE_CONFIRMED") return "Confirmed";
   if (status === "OPEN_PENDING_FILL") return "Pending Fill";
   if (status === "OPEN_CONFIRMED") return "Open Confirmed";
@@ -101,26 +75,25 @@ function statusLabel(status: BookingApi["status"]) {
   return "Cancelled";
 }
 
-function statusClasses(status: BookingApi["status"]) {
-  if (status === "PRIVATE_CONFIRMED" || status === "OPEN_CONFIRMED") {
-    return "border-[#476B0D] bg-[#22310D] text-[#B8FF3B]";
-  }
-
-  if (status === "OPEN_PENDING_FILL") {
-    return "border-[#6C5A14] bg-[#2B2411] text-[#F4D35E]";
-  }
-
-  if (status === "OPEN_EXPIRED" || status === "CANCELLED") {
-    return "border-[#4D2A2F] bg-[#241519] text-[#FF9999]";
-  }
-
-  return "border-white/10 bg-white/[0.04] text-[#D7DEE7]";
+function canManageBooking(booking: BookingApi) {
+  return booking.status !== "CANCELLED" && booking.status !== "OPEN_EXPIRED";
 }
 
-function canManageBooking(booking: BookingApi) {
+function StatusBadge({ color, children }: { color: string; children: React.ReactNode }) {
   return (
-    booking.status !== "CANCELLED" &&
-    booking.status !== "OPEN_EXPIRED"
+    <span
+      style={{
+        fontSize: "11px",
+        fontWeight: 500,
+        padding: "3px 10px",
+        borderRadius: "999px",
+        border: "1px solid rgba(255,255,255,0.1)",
+        color,
+        whiteSpace: "nowrap",
+      }}
+    >
+      {children}
+    </span>
   );
 }
 
@@ -134,9 +107,7 @@ export default function AdminBookingsPage() {
   const [processingId, setProcessingId] = useState("");
   const [search, setSearch] = useState("");
   const [showFinishedBookings, setShowFinishedBookings] = useState(false);
-  const [typeFilter, setTypeFilter] = useState<"ALL" | "PRIVATE" | "OPEN">(
-    "ALL",
-  );
+  const [typeFilter, setTypeFilter] = useState<"ALL" | "PRIVATE" | "OPEN">("ALL");
   const [dateFilter, setDateFilter] = useState<"ALL" | "TODAY">("ALL");
 
   const fetchBookings = async () => {
@@ -144,28 +115,20 @@ export default function AdminBookingsPage() {
       setError("");
       const res = await fetch("/api/bookings", { cache: "no-store" });
       const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data?.error || "Failed to load bookings");
-      }
-
+      if (!res.ok) throw new Error(data?.error || "Failed to load bookings");
       setBookings(data.bookings || []);
-    } catch (error: unknown) {
-      setError(getErrorMessage(error, "Failed to load bookings"));
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Failed to load bookings"));
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchBookings();
-  }, []);
+  useEffect(() => { fetchBookings(); }, []);
 
   useEffect(() => {
     const searchParam = searchParams.get("search");
-    if (searchParam) {
-      setSearch(searchParam);
-    }
+    if (searchParam) setSearch(searchParam);
   }, [searchParams]);
 
   const handleMarkPaid = async (bookingId: string) => {
@@ -175,24 +138,15 @@ export default function AdminBookingsPage() {
       setActionMessage("");
       const res = await fetch("/api/bookings/mark-paid", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          bookingId,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookingId }),
       });
-
       const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data?.error || "Failed to mark paid");
-      }
-
+      if (!res.ok) throw new Error(data?.error || "Failed to mark paid");
       setActionMessage("Booking marked as paid.");
       await fetchBookings();
-    } catch (error: unknown) {
-      setActionError(getErrorMessage(error, "Error marking payment"));
+    } catch (err: unknown) {
+      setActionError(getErrorMessage(err, "Error marking payment"));
     } finally {
       setProcessingId("");
     }
@@ -200,31 +154,21 @@ export default function AdminBookingsPage() {
 
   const handleCancelBooking = async (bookingId: string) => {
     if (!confirm("Cancel this booking?")) return;
-
     try {
       setProcessingId(bookingId);
       setActionError("");
       setActionMessage("");
       const res = await fetch("/api/bookings/cancel", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          bookingId,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookingId }),
       });
-
       const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data?.error || "Failed to cancel");
-      }
-
+      if (!res.ok) throw new Error(data?.error || "Failed to cancel");
       setActionMessage("Booking cancelled successfully.");
       await fetchBookings();
-    } catch (error: unknown) {
-      setActionError(getErrorMessage(error, "Error cancelling booking"));
+    } catch (err: unknown) {
+      setActionError(getErrorMessage(err, "Error cancelling booking"));
     } finally {
       setProcessingId("");
     }
@@ -233,472 +177,354 @@ export default function AdminBookingsPage() {
   const filteredBookings = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-
     return bookings.filter((booking) => {
       const matchesSearch =
         booking.user.name.toLowerCase().includes(search.toLowerCase()) ||
         booking.user.phone.includes(search) ||
         booking.id.toLowerCase().includes(search.toLowerCase());
-
-      const matchesType =
-        typeFilter === "ALL" || booking.bookingType === typeFilter;
-
+      const matchesType = typeFilter === "ALL" || booking.bookingType === typeFilter;
       let matchesDate = true;
       if (dateFilter === "TODAY") {
-        const bookingDate = new Date(booking.bookingDate);
-        bookingDate.setHours(0, 0, 0, 0);
-        matchesDate = bookingDate.getTime() === today.getTime();
+        const bd = new Date(booking.bookingDate);
+        bd.setHours(0, 0, 0, 0);
+        matchesDate = bd.getTime() === today.getTime();
       }
-
       return matchesSearch && matchesType && matchesDate;
     });
   }, [bookings, search, typeFilter, dateFilter]);
 
-  const activeBookings = useMemo(() => {
-    return filteredBookings.filter((booking) => !isBookingFinished(booking));
-  }, [filteredBookings]);
-
-  const finishedBookings = useMemo(() => {
-    return filteredBookings.filter((booking) => isBookingFinished(booking));
-  }, [filteredBookings]);
+  const activeBookings = useMemo(() => filteredBookings.filter((b) => !isBookingFinished(b)), [filteredBookings]);
+  const finishedBookings = useMemo(() => filteredBookings.filter((b) => isBookingFinished(b)), [filteredBookings]);
 
   const todaysBookingsCount = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-
-    return bookings.filter((booking) => {
-      const bookingDate = new Date(booking.bookingDate);
-      bookingDate.setHours(0, 0, 0, 0);
-      return bookingDate.getTime() === today.getTime();
+    return bookings.filter((b) => {
+      const bd = new Date(b.bookingDate);
+      bd.setHours(0, 0, 0, 0);
+      return bd.getTime() === today.getTime();
     }).length;
   }, [bookings]);
 
-  const privateCount = useMemo(
-    () =>
-      bookings.filter((booking) => booking.bookingType === "PRIVATE").length,
-    [bookings],
-  );
+  const privateCount = useMemo(() => bookings.filter((b) => b.bookingType === "PRIVATE").length, [bookings]);
+  const openCount = useMemo(() => bookings.filter((b) => b.bookingType === "OPEN").length, [bookings]);
 
-  const openCount = useMemo(
-    () => bookings.filter((booking) => booking.bookingType === "OPEN").length,
-    [bookings],
-  );
+  const filterBtnStyle = (active: boolean): React.CSSProperties => ({
+    padding: "0.375rem 0.875rem",
+    borderRadius: "999px",
+    border: `1px solid ${active ? "var(--fg-3)" : "var(--line)"}`,
+    background: active ? "rgba(255,255,255,0.07)" : "transparent",
+    color: active ? "var(--fg)" : "var(--fg-dim)",
+    fontSize: "13px",
+    cursor: "pointer",
+    transition: "all .15s",
+  });
+
+  function BookingCard({ booking, past }: { booking: BookingApi; past?: boolean }) {
+    const canManage = canManageBooking(booking);
+    return (
+      <div
+        style={{
+          borderTop: "1px solid var(--line)",
+          padding: "1.375rem 0",
+          opacity: past ? 0.6 : 1,
+        }}
+      >
+        {/* Top row */}
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap", marginBottom: "0.875rem" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+            <p style={{ fontSize: "clamp(16px,1.8vw,20px)", fontWeight: 600, color: "var(--fg)", letterSpacing: "-0.03em" }}>
+              {formatSlotRange(booking.slots)}
+            </p>
+            <StatusBadge color={statusColor(booking.status)}>{statusLabel(booking.status)}</StatusBadge>
+            <StatusBadge color={booking.paymentStatus === "PAID" ? "var(--accent)" : "#F4D35E"}>
+              {booking.paymentStatus === "PAID" ? "Paid" : "Pending"}
+            </StatusBadge>
+          </div>
+          <span style={{ fontFamily: "var(--f-mono)", fontSize: "16px", fontWeight: 600, color: "var(--fg)", letterSpacing: "-0.03em", fontVariantNumeric: "tabular-nums" }}>
+            NPR {booking.totalPrice.toLocaleString()}
+          </span>
+        </div>
+
+        {/* Contact row */}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "1.25rem", marginBottom: "0.875rem" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.375rem" }}>
+            <User size={12} style={{ color: "var(--fg-dim)" }} />
+            <span style={{ fontSize: "13px", color: "var(--fg-3)" }}>{booking.user.name}</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.375rem" }}>
+            <Phone size={12} style={{ color: "var(--fg-dim)" }} />
+            <span style={{ fontSize: "13px", color: "var(--fg-3)" }}>{booking.user.phone}</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.375rem" }}>
+            <CalendarDays size={12} style={{ color: "var(--fg-dim)" }} />
+            <span style={{ fontSize: "13px", color: "var(--fg-3)" }}>{formatDateLabel(booking.bookingDate)}</span>
+          </div>
+        </div>
+
+        {/* Meta + actions */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+            <span style={{ fontSize: "11px", padding: "3px 8px", borderRadius: "6px", border: "1px solid var(--line)", color: "var(--fg-dim)" }}>
+              {booking.bookingType === "PRIVATE" ? "Private" : "Open"}
+            </span>
+            <span style={{ fontSize: "11px", padding: "3px 8px", borderRadius: "6px", border: "1px solid var(--line)", color: "var(--fg-dim)" }}>
+              {booking.playersCount} players
+            </span>
+            <span style={{ fontSize: "11px", padding: "3px 8px", borderRadius: "6px", border: "1px solid var(--line)", color: "var(--fg-dim)", fontFamily: "var(--f-mono)" }}>
+              {booking.id.slice(0, 10)}
+            </span>
+          </div>
+
+          {!past && (
+            <div style={{ display: "flex", gap: "0.5rem" }}>
+              {booking.paymentStatus === "PENDING" && canManage ? (
+                <button
+                  className="btn btn-primary btn-sm"
+                  onClick={() => handleMarkPaid(booking.id)}
+                  disabled={processingId === booking.id}
+                >
+                  {processingId === booking.id ? "Updating..." : "Mark paid"}
+                </button>
+              ) : (
+                <button className="btn btn-ghost btn-sm" disabled>
+                  {booking.paymentStatus === "PAID" ? "Paid" : "Inactive"}
+                </button>
+              )}
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => handleCancelBooking(booking.id)}
+                disabled={!canManage || processingId === booking.id}
+                style={{ opacity: !canManage ? 0.4 : 1 }}
+              >
+                {processingId === booking.id ? "Updating..." : canManage ? "Cancel" : "Inactive"}
+              </button>
+            </div>
+          )}
+
+          {past && booking.paymentStatus === "PENDING" && canManage && (
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={() => handleMarkPaid(booking.id)}
+              disabled={processingId === booking.id}
+            >
+              {processingId === booking.id ? "Updating..." : "Mark paid"}
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  const stats = [
+    { label: "Today", value: todaysBookingsCount },
+    { label: "Private", value: privateCount },
+    { label: "Open", value: openCount },
+  ];
 
   return (
     <main className="min-h-screen pb-20">
       <section className="container py-8 md:py-12">
-        <div className="mb-8">
-          <p className="text-sm uppercase tracking-[0.2em] text-[#B8FF3B]">
-            Admin
-          </p>
-          <h1 className="mt-2 text-3xl font-semibold text-white md:text-4xl">
-            Bookings
-          </h1>
-          <p className="mt-2 text-[#94A3B8]">
-            Track, filter, and manage all bookings from one place.
-          </p>
+
+        {/* ── PAGE HEADER ─────────────────────────────────────────────── */}
+        <span className="eyebrow">Admin</span>
+        <h1
+          style={{
+            fontFamily: "var(--f-sans)",
+            fontWeight: 700,
+            fontSize: "clamp(2rem,4.5vw,3.8rem)",
+            letterSpacing: "-0.055em",
+            lineHeight: 0.96,
+            color: "var(--fg)",
+            marginTop: "1rem",
+          }}
+        >
+          Bookings.
+        </h1>
+        <p style={{ marginTop: "1rem", fontSize: "16px", lineHeight: 1.7, color: "var(--fg-3)", maxWidth: "52ch" }}>
+          Track, filter, and manage all reservations from one place.
+        </p>
+
+        {/* ── STATS STRIP ─────────────────────────────────────────────── */}
+        <div
+          style={{
+            marginTop: "2rem",
+            display: "grid",
+            gridTemplateColumns: `repeat(${stats.length}, 1fr)`,
+            borderTop: "1px solid var(--line)",
+            borderBottom: "1px solid var(--line)",
+            marginBottom: "2rem",
+          }}
+        >
+          {stats.map((s, i) => (
+            <div
+              key={s.label}
+              style={{
+                padding: "1rem 0",
+                paddingLeft: i === 0 ? 0 : "1.25rem",
+                paddingRight: i === stats.length - 1 ? 0 : "1.25rem",
+                borderRight: i < stats.length - 1 ? "1px solid var(--line)" : undefined,
+              }}
+            >
+              <span style={{ fontFamily: "var(--f-mono)", fontSize: "10px", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--fg-dim)", display: "block", marginBottom: "0.375rem" }}>
+                {s.label}
+              </span>
+              <span style={{ fontFamily: "var(--f-mono)", fontSize: "clamp(24px,2.5vw,36px)", fontWeight: 600, letterSpacing: "-0.04em", color: "var(--fg)", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
+                {s.value}
+              </span>
+            </div>
+          ))}
         </div>
 
-        <div className="grid gap-6 xl:grid-cols-[1fr_300px]">
-          <div className="space-y-6">
-            <div className="card-strong p-5 md:p-6">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                <div className="relative w-full max-w-md">
-                  <Search
-                    size={16}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 text-[#94A3B8]"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Search by name, phone, or booking ID"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="w-full rounded-[20px] border border-white/10 bg-white/[0.04] py-3 pl-11 pr-4 text-white outline-none transition placeholder:text-[#6F7D90] focus:border-[#B8FF3B]"
-                  />
-                </div>
+        {/* ── FEEDBACK ────────────────────────────────────────────────── */}
+        {error && (
+          <div style={{ marginBottom: "1.5rem" }}>
+            <StatePanel
+              variant="error"
+              eyebrow="Couldn't load bookings"
+              title="The booking list is temporarily unavailable"
+              text={error}
+              actions={
+                <button className="btn btn-ghost btn-sm" onClick={() => { setLoading(true); fetchBookings(); }}>
+                  Try again
+                </button>
+              }
+            />
+          </div>
+        )}
+        {actionError && (
+          <div style={{ marginBottom: "1.25rem", padding: "0.75rem 1rem", borderRadius: "12px", border: "1px solid rgba(255,100,100,0.2)", background: "rgba(255,80,80,0.04)" }}>
+            <p style={{ fontSize: "13px", color: "rgba(255,150,150,0.9)", margin: 0 }}>{actionError}</p>
+          </div>
+        )}
+        {actionMessage && (
+          <div style={{ marginBottom: "1.25rem", padding: "0.75rem 1rem", borderRadius: "12px", border: "1px solid rgba(184,255,59,0.18)", background: "rgba(184,255,59,0.04)" }}>
+            <p style={{ fontSize: "13px", color: "var(--accent)", margin: 0 }}>{actionMessage}</p>
+          </div>
+        )}
 
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={() => setTypeFilter("ALL")}
-                    className={`rounded-full border px-4 py-2 text-sm ${
-                      typeFilter === "ALL"
-                        ? "border-white/10 bg-white/[0.08] text-white"
-                        : "border-white/10 bg-white/[0.04] text-[#94A3B8]"
-                    }`}
-                  >
-                    All
-                  </button>
-                  <button
-                    onClick={() => setTypeFilter("PRIVATE")}
-                    className={`rounded-full border px-4 py-2 text-sm ${
-                      typeFilter === "PRIVATE"
-                        ? "border-white/10 bg-white/[0.08] text-white"
-                        : "border-white/10 bg-white/[0.04] text-[#94A3B8]"
-                    }`}
-                  >
-                    Private
-                  </button>
-                  <button
-                    onClick={() => setTypeFilter("OPEN")}
-                    className={`rounded-full border px-4 py-2 text-sm ${
-                      typeFilter === "OPEN"
-                        ? "border-white/10 bg-white/[0.08] text-white"
-                        : "border-white/10 bg-white/[0.04] text-[#94A3B8]"
-                    }`}
-                  >
-                    Open
-                  </button>
-                  <button
-                    onClick={() =>
-                      setDateFilter(dateFilter === "TODAY" ? "ALL" : "TODAY")
-                    }
-                    className={`rounded-full border px-4 py-2 text-sm ${
-                      dateFilter === "TODAY"
-                        ? "border-white/10 bg-white/[0.08] text-white"
-                        : "border-white/10 bg-white/[0.04] text-[#94A3B8]"
-                    }`}
-                  >
-                    Today
-                  </button>
-                </div>
-              </div>
+        {/* ── SEARCH + FILTERS ────────────────────────────────────────── */}
+        <div style={{ border: "1px solid var(--line)", borderRadius: "16px", background: "var(--bg-soft)", padding: "1.125rem 1.25rem", marginBottom: "1.5rem" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.875rem", alignItems: "center" }}>
+            {/* Search */}
+            <div style={{ position: "relative", flex: "1 1 240px", maxWidth: "360px" }}>
+              <Search size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--fg-dim)", pointerEvents: "none" }} />
+              <input
+                type="text"
+                placeholder="Search by name, phone, or ID"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                style={{
+                  width: "100%",
+                  borderRadius: "12px",
+                  border: "1px solid var(--line)",
+                  background: "var(--bg)",
+                  padding: "0.5rem 0.875rem 0.5rem 2.25rem",
+                  fontSize: "13px",
+                  color: "var(--fg)",
+                  outline: "none",
+                  boxSizing: "border-box",
+                }}
+                onFocus={(e) => (e.currentTarget.style.borderColor = "var(--accent)")}
+                onBlur={(e) => (e.currentTarget.style.borderColor = "var(--line)")}
+              />
             </div>
 
-            {error && (
-              <StatePanel
-                variant="error"
-                eyebrow="Couldn’t load bookings"
-                title="The booking list is temporarily unavailable"
-                text={error}
-                actions={
-                  <Button
-                    variant="secondary"
-                    className="rounded-[999px]"
-                    onClick={() => {
-                      setLoading(true);
-                      fetchBookings();
-                    }}
-                  >
-                    Try Again
-                  </Button>
-                }
-              />
-            )}
+            {/* Filter pills */}
+            <div style={{ display: "flex", gap: "0.375rem", flexWrap: "wrap" }}>
+              {(["ALL", "PRIVATE", "OPEN"] as const).map((f) => (
+                <button key={f} onClick={() => setTypeFilter(f)} style={filterBtnStyle(typeFilter === f)}>
+                  {f === "ALL" ? "All types" : f === "PRIVATE" ? "Private" : "Open"}
+                </button>
+              ))}
+              <button
+                onClick={() => setDateFilter(dateFilter === "TODAY" ? "ALL" : "TODAY")}
+                style={filterBtnStyle(dateFilter === "TODAY")}
+              >
+                Today
+              </button>
+            </div>
+          </div>
+        </div>
 
-            {actionError && (
-              <StatePanel
-                variant="error"
-                eyebrow="Action failed"
-                title="The admin action did not complete"
-                text={actionError}
-                className="rounded-[24px] p-4 shadow-none"
-              />
-            )}
+        {/* ── BOOKING LIST ────────────────────────────────────────────── */}
+        <div style={{ border: "1px solid var(--line)", borderRadius: "20px", background: "var(--bg-soft)", overflow: "hidden" }}>
+          <div style={{ padding: "1.375rem 1.75rem", borderBottom: "1px solid var(--line)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div>
+              <span className="eyebrow">Results</span>
+              <p style={{ fontSize: "16px", fontWeight: 600, color: "var(--fg)", marginTop: "0.25rem" }}>
+                {filteredBookings.length} booking{filteredBookings.length !== 1 ? "s" : ""} found
+              </p>
+            </div>
+          </div>
 
-            {actionMessage && (
-              <StatePanel
-                eyebrow="Updated"
-                title="Admin action completed"
-                text={actionMessage}
-                className="rounded-[24px] p-4 shadow-none"
-              />
-            )}
-
-            <div className="space-y-4">
-              {loading ? (
+          <div style={{ padding: "0 1.75rem" }}>
+            {loading ? (
+              <div style={{ padding: "2rem 0" }}>
                 <StatePanel
                   variant="loading"
-                  eyebrow="Loading"
                   title="Checking booking activity"
-                  text="Pulling the latest bookings, statuses, and payment state for the admin queue."
+                  text="Pulling the latest bookings, statuses, and payment state."
+                  className="rounded-[20px] p-5 shadow-none"
                 />
-              ) : filteredBookings.length === 0 ? (
+              </div>
+            ) : filteredBookings.length === 0 ? (
+              <div style={{ padding: "2rem 0" }}>
                 <StatePanel
-                  eyebrow="No results"
                   title="No bookings match these filters"
-                  text="Try changing the search text or filter pills to widen the booking list again."
+                  text="Try changing the search text or filter pills to widen the booking list."
+                  className="rounded-[20px] p-5 shadow-none"
                 />
-              ) : (
-                <>
-                  {activeBookings.length > 0 && (
-                    <div className="space-y-4">
-                      {activeBookings.map((booking) => (
-                        <div
-                          key={booking.id}
-                          className="card-strong p-5 transition-all duration-300 hover:border-white/14"
-                        >
-                          <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-                            <div className="min-w-0">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <p className="text-lg font-semibold tracking-[-0.02em] text-white">
-                                  {formatSlotRange(booking.slots)}
-                                </p>
-                                <span
-                                  className={`inline-flex rounded-full border px-3 py-1 text-xs ${statusClasses(
-                                    booking.status,
-                                  )}`}
-                                >
-                                  {statusLabel(booking.status)}
-                                </span>
+              </div>
+            ) : (
+              <>
+                {activeBookings.map((booking) => (
+                  <BookingCard key={booking.id} booking={booking} />
+                ))}
+              </>
+            )}
+          </div>
 
-                                <span
-                                  className={`inline-flex rounded-full border px-3 py-1 text-xs ${
-                                    booking.paymentStatus === "PAID"
-                                      ? "border-[#1E4D33] bg-[#10261B] text-[#7EF7C1]"
-                                      : "border-[#6C5A14] bg-[#2B2411] text-[#F4D35E]"
-                                  }`}
-                                >
-                                  {booking.paymentStatus === "PAID"
-                                    ? "Paid"
-                                    : "Pending"}
-                                </span>
-                              </div>
+          {/* Finished bookings toggle */}
+          {!loading && finishedBookings.length > 0 && (
+            <div style={{ borderTop: "1px solid var(--line)" }}>
+              <button
+                type="button"
+                onClick={() => setShowFinishedBookings((prev) => !prev)}
+                style={{
+                  width: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "1.125rem 1.75rem",
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  textAlign: "left",
+                }}
+              >
+                <div>
+                  <span style={{ fontFamily: "var(--f-mono)", fontSize: "10px", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--fg-dim)" }}>
+                    Booking history
+                  </span>
+                  <p style={{ fontSize: "14px", fontWeight: 500, color: "var(--fg)", marginTop: "0.25rem" }}>
+                    {finishedBookings.length} finished booking{finishedBookings.length !== 1 ? "s" : ""}
+                  </p>
+                </div>
+                <span className="btn-text" style={{ fontSize: "13px" }}>
+                  {showFinishedBookings ? "Hide" : "Show"}
+                </span>
+              </button>
 
-                              <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                                <div className="flex items-center gap-2 text-sm text-[#94A3B8]">
-                                  <User size={15} className="text-[#B8FF3B]" />
-                                  <span className="text-white">
-                                    {booking.user.name}
-                                  </span>
-                                </div>
-
-                                <div className="flex items-center gap-2 text-sm text-[#94A3B8]">
-                                  <Phone size={15} className="text-[#B8FF3B]" />
-                                  <span className="text-white">
-                                    {booking.user.phone}
-                                  </span>
-                                </div>
-
-                                <div className="flex items-center gap-2 text-sm text-[#94A3B8]">
-                                  <CalendarDays
-                                    size={15}
-                                    className="text-[#B8FF3B]"
-                                  />
-                                  <span className="text-white">
-                                    {formatDateLabel(booking.bookingDate)}
-                                  </span>
-                                </div>
-                              </div>
-
-                              <div className="mt-4 flex flex-wrap gap-2">
-                                <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-[#D7DEE7]">
-                                  {booking.bookingType === "PRIVATE"
-                                    ? "Private"
-                                    : "Open"}
-                                </span>
-                                <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-[#D7DEE7]">
-                                  {booking.playersCount} players
-                                </span>
-                                <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-[#D7DEE7]">
-                                  {booking.id.slice(0, 10)}
-                                </span>
-                              </div>
-                            </div>
-
-                            <div className="flex w-full flex-col gap-3 sm:w-auto sm:min-w-[170px]">
-                              <div className="rounded-[18px] border border-white/10 bg-white/[0.04] px-4 py-3">
-                                <p className="text-xs text-[#94A3B8]">Total</p>
-                                <p className="mt-1 text-xl font-semibold text-white">
-                                  NPR {booking.totalPrice}
-                                </p>
-                              </div>
-
-                              <div className="flex gap-2">
-                                {booking.paymentStatus === "PENDING" &&
-                                canManageBooking(booking) ? (
-                                  <Button
-                                    className="flex-1 rounded-[16px] px-4 bg-[#B8FF3B] text-black hover:bg-[#a6e632]"
-                                    onClick={() => handleMarkPaid(booking.id)}
-                                    disabled={processingId === booking.id}
-                                  >
-                                    {processingId === booking.id
-                                      ? "Updating..."
-                                      : "Mark Paid"}
-                                  </Button>
-                                ) : (
-                                  <Button
-                                    variant="secondary"
-                                    className="flex-1 rounded-[16px] px-4"
-                                    disabled
-                                  >
-                                    Paid
-                                  </Button>
-                                )}
-
-                                <Button
-                                  variant="secondary"
-                                  className="flex-1 rounded-[16px] px-4"
-                                  onClick={() => handleCancelBooking(booking.id)}
-                                  disabled={
-                                    !canManageBooking(booking) ||
-                                    processingId === booking.id
-                                  }
-                                >
-                                  {processingId === booking.id
-                                    ? "Updating..."
-                                    : canManageBooking(booking)
-                                    ? "Cancel"
-                                    : "Inactive"}
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {finishedBookings.length > 0 && (
-                    <div className="mt-6">
-                      <button
-                        type="button"
-                        onClick={() => setShowFinishedBookings((prev) => !prev)}
-                        className="flex w-full items-center justify-between rounded-[20px] border border-white/10 bg-white/[0.04] px-4 py-4 text-left transition hover:border-white/14"
-                      >
-                        <div>
-                          <p className="text-base font-medium text-white">
-                            Finished Bookings
-                          </p>
-                          <p className="mt-1 text-sm text-[#94A3B8]">
-                            {finishedBookings.length} completed booking
-                            {finishedBookings.length > 1 ? "s" : ""}
-                          </p>
-                        </div>
-
-                        <span className="text-sm text-[#B8FF3B]">
-                          {showFinishedBookings ? "Hide" : "Show"}
-                        </span>
-                      </button>
-
-                      {showFinishedBookings && (
-                        <div className="mt-4 space-y-4">
-                          {finishedBookings.map((booking) => (
-                            <div
-                              key={booking.id}
-                              className="card-strong p-5 opacity-75 transition-all duration-300"
-                            >
-                              <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-                                <div className="min-w-0">
-                                  <div className="flex flex-wrap items-center gap-2">
-                                    <p className="text-lg font-semibold tracking-[-0.02em] text-white">
-                                      {formatSlotRange(booking.slots)}
-                                    </p>
-                                    <span
-                                      className={`inline-flex rounded-full border px-3 py-1 text-xs ${statusClasses(
-                                        booking.status,
-                                      )}`}
-                                    >
-                                      {statusLabel(booking.status)}
-                                    </span>
-
-                                    <span
-                                      className={`inline-flex rounded-full border px-3 py-1 text-xs ${
-                                        booking.paymentStatus === "PAID"
-                                          ? "border-[#1E4D33] bg-[#10261B] text-[#7EF7C1]"
-                                          : "border-[#6C5A14] bg-[#2B2411] text-[#F4D35E]"
-                                      }`}
-                                    >
-                                      {booking.paymentStatus === "PAID"
-                                        ? "Paid"
-                                        : "Pending"}
-                                    </span>
-                                  </div>
-
-                                  <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                                    <div className="flex items-center gap-2 text-sm text-[#94A3B8]">
-                                      <User
-                                        size={15}
-                                        className="text-[#B8FF3B]"
-                                      />
-                                      <span className="text-white">
-                                        {booking.user.name}
-                                      </span>
-                                    </div>
-
-                                    <div className="flex items-center gap-2 text-sm text-[#94A3B8]">
-                                      <Phone
-                                        size={15}
-                                        className="text-[#B8FF3B]"
-                                      />
-                                      <span className="text-white">
-                                        {booking.user.phone}
-                                      </span>
-                                    </div>
-
-                                    <div className="flex items-center gap-2 text-sm text-[#94A3B8]">
-                                      <CalendarDays
-                                        size={15}
-                                        className="text-[#B8FF3B]"
-                                      />
-                                      <span className="text-white">
-                                        {formatDateLabel(booking.bookingDate)}
-                                      </span>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                <div className="rounded-[18px] border border-white/10 bg-white/[0.04] px-4 py-3">
-                                  <p className="text-xs text-[#94A3B8]">
-                                    Total
-                                  </p>
-                                  <p className="mt-1 text-xl font-semibold text-white">
-                                    NPR {booking.totalPrice}
-                                  </p>
-                                </div>
-
-                                {booking.paymentStatus === "PENDING" &&
-                                  canManageBooking(booking) && (
-                                    <Button
-                                    className="rounded-[16px] px-4 bg-[#B8FF3B] text-black hover:bg-[#a6e632]"
-                                    onClick={() => handleMarkPaid(booking.id)}
-                                    disabled={processingId === booking.id}
-                                  >
-                                      {processingId === booking.id
-                                        ? "Updating..."
-                                        : "Mark Paid"}
-                                    </Button>
-                                  )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </>
+              {showFinishedBookings && (
+                <div style={{ padding: "0 1.75rem", borderTop: "1px solid var(--line)" }}>
+                  {finishedBookings.map((booking) => (
+                    <BookingCard key={booking.id} booking={booking} past />
+                  ))}
+                </div>
               )}
             </div>
-          </div>
-
-          <div className="space-y-6">
-            <div className="card-strong p-5">
-              <p className="text-lg font-semibold text-white">Quick stats</p>
-
-              <div className="mt-4 space-y-3">
-                <div className="rounded-[18px] border border-white/10 bg-white/[0.04] px-4 py-3">
-                  <p className="text-sm text-[#94A3B8]">Today’s bookings</p>
-                  <p className="mt-1 text-2xl font-semibold text-white">
-                    {todaysBookingsCount}
-                  </p>
-                </div>
-
-                <div className="rounded-[18px] border border-white/10 bg-white/[0.04] px-4 py-3">
-                  <p className="text-sm text-[#94A3B8]">Private games</p>
-                  <p className="mt-1 text-2xl font-semibold text-white">
-                    {privateCount}
-                  </p>
-                </div>
-
-                <div className="rounded-[18px] border border-white/10 bg-white/[0.04] px-4 py-3">
-                  <p className="text-sm text-[#94A3B8]">Open games</p>
-                  <p className="mt-1 text-2xl font-semibold text-white">
-                    {openCount}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-          </div>
+          )}
         </div>
       </section>
     </main>

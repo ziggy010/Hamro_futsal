@@ -4,11 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { format } from "date-fns";
 import { useRouter } from "next/navigation";
-import { Lock, ShieldCheck, Users } from "lucide-react";
-import Button from "@/components/ui/button";
-import BookingProgress from "@/components/ui/booking-progress";
+import { Lock, Users, ArrowRight, ArrowLeft, CheckCircle2 } from "lucide-react";
 import FadeIn from "@/components/ui/fade-in";
-import SectionHeading from "@/components/ui/section-heading";
 import { useSession } from "next-auth/react";
 import { getErrorMessage } from "@/lib/utils/error-message";
 
@@ -30,6 +27,45 @@ type Props = {
 const PRIVATE_GAME_PLAYERS = 10;
 const OPEN_GAME_DEFAULT_PLAYERS = 1;
 
+/* ── small design helpers ────────────────────────────────────────── */
+
+function RowLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <span
+      style={{
+        fontFamily: "var(--f-mono)",
+        fontSize: "10px",
+        letterSpacing: "0.14em",
+        textTransform: "uppercase" as const,
+        color: "var(--fg-dim)",
+      }}
+    >
+      {children}
+    </span>
+  );
+}
+
+function SectionDivider({ label }: { label: string }) {
+  return (
+    <div style={{ marginBottom: "1.75rem" }}>
+      <span
+        style={{
+          fontFamily: "var(--f-mono)",
+          fontSize: "11px",
+          letterSpacing: "0.16em",
+          textTransform: "uppercase" as const,
+          color: "var(--fg-dim)",
+        }}
+      >
+        {label}
+      </span>
+      <div style={{ marginTop: "0.75rem", height: 1, background: "var(--line)" }} />
+    </div>
+  );
+}
+
+/* ── main component ──────────────────────────────────────────────── */
+
 export default function BookingDetailsClient({
   dateParam,
   slots,
@@ -48,59 +84,32 @@ export default function BookingDetailsClient({
 
   function convertTimeToHour(value?: string) {
     if (!value) return 0;
-
     const safeValue = value.trim();
     if (!safeValue) return 0;
-
     const parts = safeValue.split(" ");
     if (parts.length < 2) return 0;
-
     const time = parts[0];
     const period = parts[1];
-
     const [rawHour] = time.split(":");
     let hour = Number(rawHour);
-
     if (Number.isNaN(hour)) return 0;
-
-    if (period === "AM") {
-      if (hour === 12) hour = 0;
-    } else if (period === "PM") {
-      if (hour !== 12) hour += 12;
-    }
-
+    if (period === "AM") { if (hour === 12) hour = 0; }
+    else if (period === "PM") { if (hour !== 12) hour += 12; }
     return hour;
   }
 
   function parseSlotTimeRange(timeRange?: string) {
-    if (!timeRange) {
-      return {
-        startHour: 0,
-        endHour: 0,
-      };
-    }
-
-    const parts = timeRange.split(" - ").map((part) => part.trim());
-
-    if (parts.length !== 2) {
-      return {
-        startHour: 0,
-        endHour: 0,
-      };
-    }
-
-    return {
-      startHour: convertTimeToHour(parts[0]),
-      endHour: convertTimeToHour(parts[1]),
-    };
+    if (!timeRange) return { startHour: 0, endHour: 0 };
+    const parts = timeRange.split(" - ").map((p) => p.trim());
+    if (parts.length !== 2) return { startHour: 0, endHour: 0 };
+    return { startHour: convertTimeToHour(parts[0]), endHour: convertTimeToHour(parts[1]) };
   }
 
   const parsedDate = dateParam ? new Date(dateParam) : null;
   const remainingPlayersNeeded = Math.max(0, 10 - playersCount);
   const trimmedFullName = fullName.trim();
   const trimmedPhone = phone.trim();
-  const phoneInvalid =
-    trimmedPhone.length > 0 && !/^[0-9+\-\s]{7,15}$/.test(trimmedPhone);
+  const phoneInvalid = trimmedPhone.length > 0 && !/^[0-9+\-\s]{7,15}$/.test(trimmedPhone);
 
   useEffect(() => {
     if (session?.user?.name && !initialUser?.name && !fullName) {
@@ -116,46 +125,22 @@ export default function BookingDetailsClient({
       const formattedSlots = slots
         .map((slot) => {
           const { startHour, endHour } = parseSlotTimeRange(slot?.time);
-
-          return {
-            startHour,
-            endHour,
-            price: slot.price,
-          };
+          return { startHour, endHour, price: slot.price };
         })
         .filter((slot) => slot.startHour < slot.endHour);
 
       if (formattedSlots.length === 0) {
-        setSubmitError(
-          "Invalid slot time. Please go back and select the slot again.",
-        );
+        setSubmitError("Invalid slot time. Please go back and select the slot again.");
         setIsSubmitting(false);
         return;
       }
-
-      if (!trimmedFullName) {
-        setSubmitError("Please enter your full name.");
-        setIsSubmitting(false);
-        return;
-      }
-
-      if (!trimmedPhone) {
-        setSubmitError("Please enter your phone number.");
-        setIsSubmitting(false);
-        return;
-      }
-
-      if (phoneInvalid) {
-        setSubmitError("Please enter a valid phone number.");
-        setIsSubmitting(false);
-        return;
-      }
+      if (!trimmedFullName) { setSubmitError("Please enter your full name."); setIsSubmitting(false); return; }
+      if (!trimmedPhone) { setSubmitError("Please enter your phone number."); setIsSubmitting(false); return; }
+      if (phoneInvalid) { setSubmitError("Please enter a valid phone number."); setIsSubmitting(false); return; }
 
       const res = await fetch("/api/bookings/create", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: trimmedFullName,
           phone: trimmedPhone,
@@ -171,13 +156,9 @@ export default function BookingDetailsClient({
 
       if (!res.ok) {
         if (data?.error === "One or more selected slots are already booked") {
-          setSubmitError(
-            "One of your selected slots was just booked. Please choose another.",
-          );
+          setSubmitError("One of your selected slots was just booked. Please choose another.");
         } else if (data?.error === "One or more selected slots are blocked") {
-          setSubmitError(
-            "One of your selected slots is not available anymore.",
-          );
+          setSubmitError("One of your selected slots is not available anymore.");
         } else if (data?.error === "You must be logged in to book a slot") {
           setSubmitError("Please log in before booking.");
         } else {
@@ -191,425 +172,616 @@ export default function BookingDetailsClient({
       }
 
       const bookingId = data?.booking?.id;
-
-      if (!bookingId) {
-        setSubmitError(
-          "Booking was created, but confirmation details were missing.",
-        );
-        return;
-      }
+      if (!bookingId) { setSubmitError("Booking was created, but confirmation details were missing."); return; }
 
       setIsRedirecting(true);
-      router.replace(
-        `/book/success?bookingId=${encodeURIComponent(bookingId)}`,
-      );
+      router.replace(`/book/success?bookingId=${encodeURIComponent(bookingId)}`);
     } catch (error: unknown) {
-      setSubmitError(
-        getErrorMessage(
-          error,
-          "Something went wrong while creating the booking.",
-        ),
-      );
+      setSubmitError(getErrorMessage(error, "Something went wrong while creating the booking."));
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const canConfirm =
+    !!fullName && !!phone && !phoneInvalid && slots.length > 0 && !isSubmitting && !isRedirecting;
+
+  const STEPS = [
+    { n: "01", label: "Pick a slot", done: true, active: false },
+    { n: "02", label: "Your details", done: false, active: true },
+    { n: "03", label: "Confirmed", done: false, active: false },
+  ];
+
   return (
-    <main className="min-h-screen pb-24">
-      <section className="container py-8 md:py-12">
+    <main className="min-h-screen">
+
+      {/* ── PAGE HEADER ──────────────────────────────────────────────── */}
+      <section className="container pt-12 pb-10 md:pt-20 md:pb-14">
         <FadeIn>
-          <SectionHeading
-            eyebrow="Booking details"
-            title="Complete your reservation"
-            text="Choose your game type, add your details, and confirm the booking."
-          />
-          <BookingProgress currentStep={2} />
+          <span className="eyebrow">Step 02 · Details</span>
+          <h1
+            style={{
+              fontFamily: "var(--f-sans)",
+              fontWeight: 700,
+              fontSize: "clamp(2.4rem,5.5vw,4.8rem)",
+              letterSpacing: "-0.055em",
+              lineHeight: 0.96,
+              color: "var(--fg)",
+              marginTop: "1rem",
+              maxWidth: "18ch",
+            }}
+          >
+            Lock your slot.
+          </h1>
+          <p
+            style={{
+              marginTop: "1.25rem",
+              fontSize: "17px",
+              lineHeight: 1.7,
+              color: "var(--fg-3)",
+              maxWidth: "44ch",
+            }}
+          >
+            Choose your game type and confirm your contact details.
+          </p>
         </FadeIn>
 
-        <div className="mt-8 grid gap-6 lg:grid-cols-[1.02fr_0.98fr]">
-          <div className="space-y-6">
-            <FadeIn delay={0.04}>
-              <div className="card-strong p-5 md:p-6">
-                <div className="grid gap-4 md:grid-cols-3">
-                  <div className="rounded-[22px] border border-white/10 bg-white/[0.04] p-4">
-                    <p className="text-sm font-medium text-white">
-                      Step 1 already done
-                    </p>
-                    <p className="mt-2 text-sm leading-7 text-[#94A3B8]">
-                      Your date and slot are selected and saved in this booking
-                      flow.
-                    </p>
-                  </div>
-
-                  <div className="rounded-[22px] border border-white/10 bg-white/[0.04] p-4">
-                    <p className="text-sm font-medium text-white">
-                      One more confirmation
-                    </p>
-                    <p className="mt-2 text-sm leading-7 text-[#94A3B8]">
-                      Choose private or open game, then confirm with your saved
-                      contact details.
-                    </p>
-                  </div>
-
-                  <div className="rounded-[22px] border border-white/10 bg-white/[0.04] p-4">
-                    <p className="text-sm font-medium text-white">
-                      Payment at venue
-                    </p>
-                    <p className="mt-2 text-sm leading-7 text-[#94A3B8]">
-                      No online checkout right now. Your slot is booked first,
-                      and payment is settled later at the futsal.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </FadeIn>
-
-            <FadeIn delay={0.08}>
-              <div className="card-strong p-5 md:p-6">
-                <div className="mb-5">
-                  <p className="text-lg font-semibold tracking-[-0.02em] text-white">
-                    Choose game type
-                  </p>
-                  <p className="mt-1 text-sm text-[#94A3B8]">
-                    Private games are for your own players. Open games allow
-                    other signed-in players to join later.
-                  </p>
-                </div>
-
-                <div className="grid gap-3 md:grid-cols-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setGameType("private");
-                      setPlayersCount(PRIVATE_GAME_PLAYERS);
+        {/* ── step strip ─────────────────────────────────────────────── */}
+        <FadeIn delay={0.08}>
+          <div
+            style={{
+              marginTop: "2.5rem",
+              display: "grid",
+              gridTemplateColumns: "repeat(3, 1fr)",
+              borderTop: "1px solid var(--line)",
+              borderBottom: "1px solid var(--line)",
+            }}
+          >
+            {STEPS.map((step, i) => (
+              <div
+                key={step.n}
+                style={{
+                  padding: "1rem 0",
+                  paddingLeft: i === 0 ? 0 : "1.25rem",
+                  paddingRight: i === 2 ? 0 : "1.25rem",
+                  borderRight: i < 2 ? "1px solid var(--line)" : undefined,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.625rem",
+                }}
+              >
+                <span
+                  style={{
+                    fontFamily: "var(--f-mono)",
+                    fontSize: "11px",
+                    letterSpacing: "0.14em",
+                    flexShrink: 0,
+                    color: step.active
+                      ? "var(--accent)"
+                      : step.done
+                        ? "var(--fg-dim)"
+                        : "var(--fg-faint)",
+                  }}
+                >
+                  {step.n}
+                </span>
+                <span
+                  style={{
+                    fontSize: "13px",
+                    fontWeight: step.active ? 600 : 400,
+                    letterSpacing: "-0.01em",
+                    color: step.active
+                      ? "var(--fg)"
+                      : step.done
+                        ? "var(--fg-3)"
+                        : "var(--fg-dim)",
+                  }}
+                >
+                  {step.label}
+                </span>
+                {step.done && (
+                  <CheckCircle2
+                    size={12}
+                    style={{ color: "var(--accent)", opacity: 0.7, marginLeft: "auto", flexShrink: 0 }}
+                  />
+                )}
+                {step.active && (
+                  <span
+                    style={{
+                      marginLeft: "auto",
+                      flexShrink: 0,
+                      width: 6,
+                      height: 6,
+                      borderRadius: "50%",
+                      background: "var(--accent)",
                     }}
-                    className={`rounded-[24px] border p-4 text-left transition-all duration-300 ${
-                      gameType === "private"
-                        ? "border-[#B8FF3B] bg-[#18220C]"
-                        : "border-white/10 bg-white/[0.04] hover:border-white/14 hover:bg-white/[0.07]"
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[16px] border border-white/10 bg-white/[0.04] text-[#B8FF3B]">
-                        <Lock size={18} />
-                      </div>
-
-                      <div>
-                        <p className="text-base font-medium text-white">
-                          Private Game
-                        </p>
-                        <p className="mt-2 text-sm leading-7 text-[#94A3B8]">
-                          Keep the booking for your own group only.
-                        </p>
-                      </div>
-                    </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setGameType("open");
-                      setPlayersCount(OPEN_GAME_DEFAULT_PLAYERS);
-                    }}
-                    className={`rounded-[24px] border p-4 text-left transition-all duration-300 ${
-                      gameType === "open"
-                        ? "border-[#B8FF3B] bg-[#18220C]"
-                        : "border-white/10 bg-white/[0.04] hover:border-white/14 hover:bg-white/[0.07]"
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[16px] border border-white/10 bg-white/[0.04] text-[#B8FF3B]">
-                        <Users size={18} />
-                      </div>
-
-                      <div>
-                        <p className="text-base font-medium text-white">
-                          Open Game
-                        </p>
-                        <p className="mt-2 text-sm leading-7 text-[#94A3B8]">
-                          Let other players join until the game fills up.
-                        </p>
-                      </div>
-                    </div>
-                  </button>
-                </div>
-
-                {gameType === "open" && (
-                  <div className="mt-5 rounded-[24px] border border-white/10 bg-white/[0.04] p-4">
-                    <div className="flex items-start gap-3">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[16px] border border-white/10 bg-white/[0.04] text-[#B8FF3B]">
-                        <ShieldCheck size={18} />
-                      </div>
-
-                      <div className="w-full">
-                        <p className="text-sm text-[#94A3B8]">
-                          How many players do you already have?
-                        </p>
-
-                        <div className="mt-4 flex flex-wrap items-center gap-3">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setPlayersCount((prev) => Math.max(1, prev - 1))
-                            }
-                            className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white transition hover:bg-white/[0.08]"
-                          >
-                            -
-                          </button>
-
-                          <div className="min-w-[60px] text-center">
-                            <p className="text-2xl font-semibold tracking-[-0.03em] text-white">
-                              {playersCount}
-                            </p>
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setPlayersCount((prev) => Math.min(10, prev + 1))
-                            }
-                            className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white transition hover:bg-white/[0.08]"
-                          >
-                            +
-                          </button>
-
-                          <p className="text-sm text-[#94A3B8]">
-                            Need{" "}
-                            <span className="font-medium text-white">
-                              {remainingPlayersNeeded}
-                            </span>{" "}
-                            more players
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  />
                 )}
               </div>
-            </FadeIn>
+            ))}
+          </div>
+        </FadeIn>
+      </section>
 
-            <FadeIn delay={0.12}>
-              <div className="card-strong p-5 md:p-6">
-                <div className="mb-6">
-                  <p className="text-lg font-semibold tracking-[-0.02em] text-white">
-                    Your details
-                  </p>
-                  <p className="mt-1 text-sm text-[#94A3B8]">
-                    Keep it quick and easy for mobile users.
-                  </p>
-                </div>
+      {/* ── MAIN GRID ────────────────────────────────────────────────── */}
+      <section className="container pb-24">
+        <div className="grid gap-8 lg:gap-12 lg:grid-cols-[1fr_380px] items-start">
 
-                <div className="space-y-5">
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-white">
-                      Full name
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Enter your full name"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      className="w-full rounded-[22px] border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none transition placeholder:text-[#6F7D90] focus:border-[#B8FF3B] focus:bg-white/[0.06]"
+          {/* ── LEFT: form ─────────────────────────────────────────── */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "3rem" }}>
+
+            {/* Game type */}
+            <FadeIn delay={0.06}>
+              <SectionDivider label="Game type" />
+              <p style={{ fontSize: "15px", color: "var(--fg-3)", lineHeight: 1.65, marginBottom: "1.5rem", maxWidth: "52ch" }}>
+                Private is your own squad only. Open lets other signed-in players join your slot until it fills.
+              </p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {/* Private */}
+                <button
+                  type="button"
+                  onClick={() => { setGameType("private"); setPlayersCount(PRIVATE_GAME_PLAYERS); }}
+                  style={{
+                    padding: "1.25rem 1.375rem",
+                    border: `1px solid ${gameType === "private" ? "var(--accent)" : "var(--line)"}`,
+                    borderRadius: "20px",
+                    background: gameType === "private" ? "rgba(184,255,59,0.05)" : "var(--bg-soft)",
+                    textAlign: "left",
+                    cursor: "pointer",
+                    transition: "border-color .2s ease, background .2s ease",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
+                    <Lock
+                      size={14}
+                      style={{ color: gameType === "private" ? "var(--accent)" : "var(--fg-dim)", flexShrink: 0 }}
                     />
+                    <span style={{ fontSize: "14px", fontWeight: 600, color: "var(--fg)", letterSpacing: "-0.01em" }}>
+                      Private
+                    </span>
+                    {gameType === "private" && (
+                      <span style={{ marginLeft: "auto", width: 6, height: 6, borderRadius: "50%", background: "var(--accent)", flexShrink: 0 }} />
+                    )}
                   </div>
+                  <p style={{ fontSize: "13px", color: "var(--fg-3)", lineHeight: 1.55, margin: 0 }}>
+                    Reserved for your group only.
+                  </p>
+                </button>
 
+                {/* Open */}
+                <button
+                  type="button"
+                  onClick={() => { setGameType("open"); setPlayersCount(OPEN_GAME_DEFAULT_PLAYERS); }}
+                  style={{
+                    padding: "1.25rem 1.375rem",
+                    border: `1px solid ${gameType === "open" ? "var(--accent)" : "var(--line)"}`,
+                    borderRadius: "20px",
+                    background: gameType === "open" ? "rgba(184,255,59,0.05)" : "var(--bg-soft)",
+                    textAlign: "left",
+                    cursor: "pointer",
+                    transition: "border-color .2s ease, background .2s ease",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
+                    <Users
+                      size={14}
+                      style={{ color: gameType === "open" ? "var(--accent)" : "var(--fg-dim)", flexShrink: 0 }}
+                    />
+                    <span style={{ fontSize: "14px", fontWeight: 600, color: "var(--fg)", letterSpacing: "-0.01em" }}>
+                      Open
+                    </span>
+                    {gameType === "open" && (
+                      <span style={{ marginLeft: "auto", width: 6, height: 6, borderRadius: "50%", background: "var(--accent)", flexShrink: 0 }} />
+                    )}
+                  </div>
+                  <p style={{ fontSize: "13px", color: "var(--fg-3)", lineHeight: 1.55, margin: 0 }}>
+                    Others can join until it fills.
+                  </p>
+                </button>
+              </div>
+
+              {/* Players stepper — open game only */}
+              {gameType === "open" && (
+                <div
+                  style={{
+                    marginTop: "1.75rem",
+                    paddingTop: "1.75rem",
+                    borderTop: "1px solid var(--line)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    flexWrap: "wrap",
+                    gap: "1.25rem",
+                  }}
+                >
                   <div>
-                    <label className="mb-2 block text-sm font-medium text-white">
-                      Phone number
-                    </label>
-                      <input
-                        type="tel"
-                        placeholder="9813110577"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        className="w-full rounded-[22px] border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none transition placeholder:text-[#6F7D90] focus:border-[#B8FF3B] focus:bg-white/[0.06]"
-                      />
-                      {phoneInvalid && (
-                        <p className="mt-2 text-sm text-[#FFB4B4]">
-                          Use 7-15 digits and only numbers, spaces, `+` or `-`.
-                        </p>
-                      )}
-                    </div>
-
-                  <div className="rounded-[22px] border border-white/10 bg-white/[0.04] p-4">
-                    <p className="text-sm leading-7 text-[#94A3B8]">
-                      Sign in will be required before final booking confirmation
-                      for both private and open games. Payment is collected at
-                      the venue.
+                    <p style={{ fontSize: "15px", fontWeight: 500, color: "var(--fg)" }}>
+                      Players you already have
+                    </p>
+                    <p style={{ fontSize: "13px", color: "var(--fg-3)", marginTop: 4, lineHeight: 1.5 }}>
+                      Need{" "}
+                      <strong style={{ color: "var(--fg)", fontWeight: 600 }}>
+                        {remainingPlayersNeeded}
+                      </strong>{" "}
+                      more to fill the game
                     </p>
                   </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "1.25rem" }}>
+                    <button
+                      type="button"
+                      onClick={() => setPlayersCount((prev) => Math.max(1, prev - 1))}
+                      style={{
+                        width: 40, height: 40, borderRadius: "50%",
+                        border: "1px solid var(--line)", background: "transparent",
+                        color: "var(--fg)", fontSize: "20px", cursor: "pointer",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        transition: "border-color .2s",
+                      }}
+                    >
+                      −
+                    </button>
+                    <span
+                      style={{
+                        fontFamily: "var(--f-mono)",
+                        fontSize: "32px",
+                        fontWeight: 600,
+                        color: "var(--fg)",
+                        letterSpacing: "-0.04em",
+                        minWidth: "2ch",
+                        textAlign: "center",
+                        fontVariantNumeric: "tabular-nums",
+                      }}
+                    >
+                      {playersCount}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setPlayersCount((prev) => Math.min(10, prev + 1))}
+                      style={{
+                        width: 40, height: 40, borderRadius: "50%",
+                        border: "1px solid var(--line)", background: "transparent",
+                        color: "var(--fg)", fontSize: "20px", cursor: "pointer",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        transition: "border-color .2s",
+                      }}
+                    >
+                      +
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
             </FadeIn>
-          </div>
 
-          <FadeIn delay={0.16}>
-            <div className="card-strong glow sticky top-24 p-5 md:p-6">
-              <p className="section-eyebrow">Booking summary</p>
-
-              <div className="mt-5 space-y-4">
-                <div className="rounded-[22px] border border-white/10 bg-white/[0.04] p-4">
-                  <p className="text-sm text-[#94A3B8]">Date</p>
-                  <p className="mt-1 text-lg font-semibold tracking-[-0.02em] text-white">
-                    {parsedDate && !Number.isNaN(parsedDate.getTime())
-                      ? format(parsedDate, "EEEE, MMM d")
-                      : "No date selected"}
-                  </p>
+            {/* Your details */}
+            <FadeIn delay={0.10}>
+              <SectionDivider label="Your details" />
+              <div style={{ display: "flex", flexDirection: "column", gap: "1.375rem" }}>
+                <div>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: "13px",
+                      fontWeight: 500,
+                      color: "var(--fg-3)",
+                      marginBottom: "0.625rem",
+                      letterSpacing: "0.01em",
+                    }}
+                  >
+                    Full name
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Enter your full name"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    style={{
+                      width: "100%",
+                      borderRadius: "14px",
+                      border: "1px solid var(--line)",
+                      background: "var(--bg-soft)",
+                      padding: "14px 18px",
+                      fontSize: "15px",
+                      color: "var(--fg)",
+                      outline: "none",
+                      boxSizing: "border-box" as const,
+                      transition: "border-color .2s",
+                    }}
+                    onFocus={(e) => (e.currentTarget.style.borderColor = "var(--accent)")}
+                    onBlur={(e) => (e.currentTarget.style.borderColor = "var(--line)")}
+                  />
                 </div>
 
-                <div className="rounded-[22px] border border-white/10 bg-white/[0.04] p-4">
-                  <p className="text-sm text-[#94A3B8]">Slots</p>
-
-                  {slots.length > 0 ? (
-                    <div className="mt-3 space-y-2">
-                      {slots.map((slot, index) => (
-                        <div
-                          key={`${slot.time}-${index}`}
-                          className="flex items-center justify-between rounded-2xl border border-white/10 bg-[#121821] px-3 py-3"
-                        >
-                          <span className="text-sm font-medium text-white">
-                            {slot.time}
-                          </span>
-                          <span className="text-sm text-[#94A3B8]">
-                            NPR {slot.price}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="mt-3 text-sm text-[#94A3B8]">
-                      No slots selected.
+                <div>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: "13px",
+                      fontWeight: 500,
+                      color: "var(--fg-3)",
+                      marginBottom: "0.625rem",
+                      letterSpacing: "0.01em",
+                    }}
+                  >
+                    Phone number
+                  </label>
+                  <input
+                    type="tel"
+                    placeholder="9813110577"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    style={{
+                      width: "100%",
+                      borderRadius: "14px",
+                      border: `1px solid ${phoneInvalid ? "rgba(255,100,100,0.45)" : "var(--line)"}`,
+                      background: "var(--bg-soft)",
+                      padding: "14px 18px",
+                      fontSize: "15px",
+                      color: "var(--fg)",
+                      outline: "none",
+                      boxSizing: "border-box" as const,
+                      transition: "border-color .2s",
+                    }}
+                    onFocus={(e) => (e.currentTarget.style.borderColor = phoneInvalid ? "rgba(255,100,100,0.45)" : "var(--accent)")}
+                    onBlur={(e) => (e.currentTarget.style.borderColor = phoneInvalid ? "rgba(255,100,100,0.45)" : "var(--line)")}
+                  />
+                  {phoneInvalid && (
+                    <p style={{ marginTop: "0.5rem", fontSize: "13px", color: "rgba(255,140,140,0.9)", lineHeight: 1.5 }}>
+                      Use 7-15 digits: numbers, spaces, + or −.
                     </p>
                   )}
                 </div>
 
-                <div className="rounded-[22px] border border-white/10 bg-white/[0.04] p-4">
-                  <p className="text-sm text-[#94A3B8]">Game type</p>
+                <p style={{ fontSize: "13px", color: "var(--fg-dim)", lineHeight: 1.65, maxWidth: "52ch" }}>
+                  Sign-in is required before confirming. Payment is collected at the venue, not online.
+                </p>
+              </div>
+            </FadeIn>
+          </div>
 
-                  <div className="mt-3 flex items-start gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[16px] border border-white/10 bg-white/[0.04] text-[#B8FF3B]">
-                      {gameType === "private" ? (
-                        <Lock size={18} />
-                      ) : (
-                        <Users size={18} />
-                      )}
-                    </div>
+          {/* ── RIGHT: sticky summary ────────────────────────────────── */}
+          <FadeIn delay={0.14}>
+            <div
+              style={{
+                position: "sticky",
+                top: "calc(80px + 1.5rem)",
+                border: "1px solid var(--line)",
+                borderRadius: "24px",
+                background: "var(--bg-soft)",
+                overflow: "hidden",
+              }}
+            >
+              {/* Header */}
+              <div style={{ padding: "1.375rem 1.75rem", borderBottom: "1px solid var(--line)" }}>
+                <span className="eyebrow">Booking summary</span>
+              </div>
 
-                    <div>
-                      <p className="text-base font-medium text-white">
-                        {gameType === "private" ? "Private Game" : "Open Game"}
-                      </p>
+              {/* Date */}
+              <div style={{ padding: "1.25rem 1.75rem", borderBottom: "1px solid var(--line)" }}>
+                <RowLabel>Date</RowLabel>
+                <p
+                  style={{
+                    marginTop: "0.5rem",
+                    fontSize: "22px",
+                    fontWeight: 600,
+                    color: "var(--fg)",
+                    letterSpacing: "-0.035em",
+                    lineHeight: 1.1,
+                  }}
+                >
+                  {parsedDate && !Number.isNaN(parsedDate.getTime())
+                    ? format(parsedDate, "EEEE, MMM d")
+                    : "No date selected"}
+                </p>
+              </div>
 
-                      <p className="mt-1 text-sm leading-7 text-[#94A3B8]">
-                        {gameType === "private"
-                          ? "This slot will be reserved for your own players only."
-                          : `You already have ${playersCount} player${
-                              playersCount > 1 ? "s" : ""
-                            } and need ${remainingPlayersNeeded} more to fill the game.`}
-                      </p>
-                    </div>
+              {/* Slots */}
+              <div style={{ padding: "1.25rem 1.75rem", borderBottom: "1px solid var(--line)" }}>
+                <RowLabel>Slots</RowLabel>
+                {slots.length > 0 ? (
+                  <div style={{ marginTop: "0.875rem", display: "flex", flexDirection: "column", gap: "0.625rem" }}>
+                    {slots.map((slot, i) => (
+                      <div
+                        key={`${slot.time}-${i}`}
+                        style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
+                      >
+                        <span style={{ fontSize: "14px", fontWeight: 500, color: "var(--fg)" }}>
+                          {slot.time}
+                        </span>
+                        <span
+                          style={{
+                            fontFamily: "var(--f-mono)",
+                            fontSize: "13px",
+                            color: "var(--fg-3)",
+                            fontVariantNumeric: "tabular-nums",
+                          }}
+                        >
+                          NPR {slot.price.toLocaleString()}
+                        </span>
+                      </div>
+                    ))}
                   </div>
-                </div>
+                ) : (
+                  <p style={{ marginTop: "0.5rem", fontSize: "14px", color: "var(--fg-dim)" }}>
+                    No slots selected.
+                  </p>
+                )}
+              </div>
 
-                <div className="rounded-[22px] border border-white/10 bg-white/[0.04] p-4">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm text-[#94A3B8]">Duration</p>
-                    <p className="font-medium text-white">
-                      {slots.length} hour{slots.length > 1 ? "s" : ""}
+              {/* Game type */}
+              <div
+                style={{
+                  padding: "1.25rem 1.75rem",
+                  borderBottom: "1px solid var(--line)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.75rem",
+                }}
+              >
+                {gameType === "private"
+                  ? <Lock size={13} style={{ color: "var(--fg-dim)", flexShrink: 0 }} />
+                  : <Users size={13} style={{ color: "var(--fg-dim)", flexShrink: 0 }} />}
+                <div>
+                  <p style={{ fontSize: "14px", fontWeight: 500, color: "var(--fg)", lineHeight: 1 }}>
+                    {gameType === "private" ? "Private game" : "Open game"}
+                  </p>
+                  <p style={{ fontSize: "12px", color: "var(--fg-dim)", marginTop: 4, lineHeight: 1.45 }}>
+                    {gameType === "private"
+                      ? "Reserved for your group only"
+                      : `${playersCount} confirmed · ${remainingPlayersNeeded} spots open`}
+                  </p>
+                </div>
+              </div>
+
+              {/* Total */}
+              <div style={{ padding: "1.25rem 1.75rem", borderBottom: "1px solid var(--line)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: "0.75rem" }}>
+                  <div>
+                    <RowLabel>Total</RowLabel>
+                    <p style={{ fontSize: "12px", color: "var(--fg-dim)", marginTop: 5 }}>
+                      {slots.length} hr · pay at venue
                     </p>
                   </div>
-
-                  <div className="mt-3 flex items-center justify-between">
-                    <p className="text-sm text-[#94A3B8]">Total</p>
-                    <p className="text-2xl font-semibold tracking-[-0.03em] text-white">
-                      NPR {total}
-                    </p>
-                  </div>
+                  <span
+                    style={{
+                      fontFamily: "var(--f-mono)",
+                      fontSize: "clamp(26px,2.8vw,34px)",
+                      fontWeight: 600,
+                      letterSpacing: "-0.045em",
+                      color: "var(--fg)",
+                      fontVariantNumeric: "tabular-nums",
+                      lineHeight: 1,
+                    }}
+                  >
+                    NPR {total.toLocaleString()}
+                  </span>
                 </div>
+              </div>
 
-                <div className="rounded-[22px] border border-white/10 bg-white/[0.04] p-4">
-                  <p className="text-sm text-[#94A3B8]">What happens next</p>
-                  <div className="mt-3 space-y-3">
-                    <div className="rounded-2xl border border-white/10 bg-[#121821] px-3 py-3 text-sm text-[#D7DEE7]">
-                      1. Your selected slot gets reserved immediately.
+              {/* After confirming */}
+              <div style={{ padding: "1.25rem 1.75rem", borderBottom: "1px solid var(--line)" }}>
+                <RowLabel>After confirming</RowLabel>
+                <div style={{ marginTop: "0.875rem", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                  {[
+                    "Your slot is reserved immediately.",
+                    "A confirmation page shows your booking details.",
+                    "Payment is settled at the venue on arrival.",
+                  ].map((step, i) => (
+                    <div key={i} style={{ display: "flex", gap: "0.75rem", alignItems: "baseline" }}>
+                      <span
+                        style={{
+                          fontFamily: "var(--f-mono)",
+                          fontSize: "10px",
+                          color: "var(--fg-faint)",
+                          flexShrink: 0,
+                          letterSpacing: "0.08em",
+                        }}
+                      >
+                        0{i + 1}
+                      </span>
+                      <p style={{ fontSize: "13px", color: "var(--fg-3)", lineHeight: 1.55, margin: 0 }}>
+                        {step}
+                      </p>
                     </div>
-                    <div className="rounded-2xl border border-white/10 bg-[#121821] px-3 py-3 text-sm text-[#D7DEE7]">
-                      2. You land on a confirmation page with your booking
-                      summary.
-                    </div>
-                    <div className="rounded-2xl border border-white/10 bg-[#121821] px-3 py-3 text-sm text-[#D7DEE7]">
-                      3. Payment is handled at the venue, not online.
-                    </div>
-                  </div>
+                  ))}
                 </div>
+              </div>
 
+              {/* CTA area */}
+              <div
+                style={{
+                  padding: "1.375rem 1.75rem",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "0.875rem",
+                }}
+              >
                 {submitError && (
-                  <div className="rounded-[18px] border border-[#4D2A2F] bg-[#241519] px-4 py-3">
-                    <p className="text-sm text-[#FFB4B4]">{submitError}</p>
+                  <div
+                    style={{
+                      padding: "0.875rem 1rem",
+                      borderRadius: "12px",
+                      border: "1px solid rgba(255,100,100,0.22)",
+                      background: "rgba(255,80,80,0.05)",
+                    }}
+                  >
+                    <p style={{ fontSize: "13px", color: "rgba(255,150,150,0.9)", lineHeight: 1.5, margin: 0 }}>
+                      {submitError}
+                    </p>
                   </div>
                 )}
 
                 {status === "loading" ? (
-                  <Button
-                    className="w-full shadow-[0_10px_30px_rgba(184,255,59,0.18)]"
+                  <button
                     disabled
+                    className="btn btn-primary btn-lg"
+                    style={{ width: "100%", opacity: 0.55 }}
                   >
                     Checking account...
-                  </Button>
+                  </button>
                 ) : session?.user ? (
-                  <Button
-                    className="w-full shadow-[0_10px_30px_rgba(184,255,59,0.18)]"
-                    disabled={
-                      !fullName ||
-                      !phone ||
-                      phoneInvalid ||
-                      slots.length === 0 ||
-                      isSubmitting ||
-                      isRedirecting
-                    }
+                  <button
+                    className="btn btn-primary btn-lg"
+                    style={{ width: "100%", boxShadow: "0 10px 30px rgba(184,255,59,0.16)" }}
+                    disabled={!canConfirm}
                     onClick={handleConfirm}
                   >
                     {isRedirecting
                       ? "Opening confirmation..."
                       : isSubmitting
                         ? "Booking..."
-                        : "Confirm Booking"}
-                  </Button>
+                        : "Confirm booking"}
+                    <span className="btn-icon-wrap"><ArrowRight size={13} /></span>
+                  </button>
                 ) : (
-                  <Button
-                    className="w-full shadow-[0_10px_30px_rgba(184,255,59,0.18)]"
+                  <button
+                    className="btn btn-primary btn-lg"
+                    style={{ width: "100%", boxShadow: "0 10px 30px rgba(184,255,59,0.16)" }}
                     onClick={() => {
                       const currentUrl =
                         typeof window !== "undefined"
                           ? window.location.pathname + window.location.search
                           : "/book/details";
-
-                      router.push(
-                        `/login?callbackUrl=${encodeURIComponent(currentUrl)}`,
-                      );
+                      router.push(`/login?callbackUrl=${encodeURIComponent(currentUrl)}`);
                     }}
                   >
-                    Login to Continue
-                  </Button>
+                    Sign in to continue
+                    <span className="btn-icon-wrap"><ArrowRight size={13} /></span>
+                  </button>
                 )}
 
                 {!session?.user && status !== "loading" && (
-                  <p className="text-center text-sm text-[#94A3B8]">
-                    You need to sign in before booking. We will bring you right
-                    back to this confirmation step.
+                  <p
+                    style={{
+                      textAlign: "center",
+                      fontSize: "13px",
+                      color: "var(--fg-dim)",
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    We'll bring you back here right after sign-in.
                   </p>
                 )}
 
                 <Link
                   href="/book"
-                  className="block text-center text-sm text-[#94A3B8] transition hover:text-white"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "0.375rem",
+                    fontSize: "13px",
+                    color: "var(--fg-dim)",
+                    textDecoration: "none",
+                    transition: "color .2s",
+                  }}
                 >
-                  Go back and edit slot
+                  <ArrowLeft size={13} />
+                  Edit slot selection
                 </Link>
               </div>
             </div>
           </FadeIn>
+
         </div>
       </section>
     </main>

@@ -1416,6 +1416,132 @@ button {
   border-color: rgba(255,107,107,.25); background: rgba(255,107,107,.08); color: var(--danger);
 }
 
+@media (max-width: 720px) {
+  .book-progress {
+    gap: 14px;
+    padding-bottom: 24px;
+    margin-bottom: 28px;
+  }
+
+  .book-progress-step {
+    width: 100%;
+    font-size: 12px;
+  }
+
+  .book-grid {
+    gap: 24px;
+  }
+
+  .date-strip {
+    gap: 10px;
+    padding-bottom: 8px;
+    margin-inline: -2px;
+    padding-inline: 2px;
+  }
+
+  .date-cell {
+    min-width: 76px;
+    padding: 14px 12px;
+    border-radius: 14px;
+  }
+
+  .date-cell-day {
+    margin-top: 8px;
+    font-size: 24px;
+  }
+
+  .slot-group {
+    border-radius: 18px;
+  }
+
+  .slot-group-head {
+    padding: 16px;
+    align-items: flex-start;
+    gap: 14px;
+    flex-direction: column;
+  }
+
+  .slot-group-meta {
+    width: 100%;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .slot-group-count {
+    font-size: 10.5px;
+    padding: 5px 9px;
+  }
+
+  .slot-group-body {
+    grid-template-columns: 1fr;
+    padding: 12px;
+    gap: 10px;
+  }
+
+  .slot {
+    padding: 14px;
+    align-items: flex-start;
+    gap: 10px;
+    flex-direction: column;
+  }
+
+  .slot-time {
+    font-size: 13px;
+    line-height: 1.4;
+  }
+
+  .slot-meta {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .summary {
+    position: static;
+    top: auto;
+    border-radius: 20px;
+  }
+
+  .summary-head {
+    padding: 18px 18px 16px;
+  }
+
+  .summary-body {
+    padding: 18px;
+    gap: 16px;
+  }
+
+  .summary-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .summary-row-value {
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .summary-slot {
+    padding: 10px 11px;
+  }
+
+  .summary-total {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .summary-total .amount {
+    font-size: 28px;
+  }
+
+  .chip {
+    gap: 6px;
+    padding: 5px 10px;
+    font-size: 11px;
+  }
+}
+
 /* ── Contact form inputs ── */
 .contact-input::placeholder { color: var(--fg-dim); opacity: 1; }
 .contact-input:focus { border-color: rgba(255,255,255,0.28); }

@@ -1,19 +1,9 @@
 import Link from "next/link";
 import { format } from "date-fns";
-import {
-  CheckCircle2,
-  Lock,
-  Users,
-  CalendarDays,
-  Wallet,
-  Phone,
-} from "lucide-react";
+import { CheckCircle2, Lock, Users, ArrowRight, CalendarDays } from "lucide-react";
 import { redirect } from "next/navigation";
 import { prisma } from "../../../src/lib/prisma";
-import Button from "@/components/ui/button";
-import BookingProgress from "@/components/ui/booking-progress";
 import FadeIn from "@/components/ui/fade-in";
-import SectionHeading from "@/components/ui/section-heading";
 
 type RawSearchParams = Promise<{
   [key: string]: string | string[] | undefined;
@@ -34,6 +24,22 @@ function hourTo12(hour: number) {
   return `${normalized}:00 ${suffix}`;
 }
 
+function RowLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <span
+      style={{
+        fontFamily: "var(--f-mono)",
+        fontSize: "10px",
+        letterSpacing: "0.14em",
+        textTransform: "uppercase" as const,
+        color: "var(--fg-dim)",
+      }}
+    >
+      {children}
+    </span>
+  );
+}
+
 export default async function BookingSuccessPage({
   searchParams,
 }: {
@@ -42,26 +48,18 @@ export default async function BookingSuccessPage({
   const params = await searchParams;
   const bookingId = first(params.bookingId);
 
-  if (!bookingId) {
-    redirect("/book");
-  }
+  if (!bookingId) redirect("/book");
 
   const booking = await prisma.booking.findUnique({
     where: { id: bookingId },
     include: {
       user: true,
-      slots: {
-        orderBy: {
-          startHour: "asc",
-        },
-      },
+      slots: { orderBy: { startHour: "asc" } },
       openGame: true,
     },
   });
 
-  if (!booking) {
-    redirect("/book");
-  }
+  if (!booking) redirect("/book");
 
   const parsedDate = new Date(booking.bookingDate);
   const gameType = booking.bookingType === "OPEN" ? "open" : "private";
@@ -69,246 +67,352 @@ export default async function BookingSuccessPage({
   const remainingPlayersNeeded = Math.max(0, 10 - playersCount);
   const total = booking.totalPrice;
 
-  const slots = booking.slots.map(
+  const slots: Slot[] = booking.slots.map(
     (slot: { startHour: number; endHour: number; price: number }) => ({
       time: `${hourTo12(slot.startHour)} - ${hourTo12(slot.endHour)}`,
       price: slot.price,
     }),
   );
 
+  function statusLabel(status: string) {
+    if (status === "PRIVATE_CONFIRMED") return "Confirmed";
+    if (status === "OPEN_PENDING_FILL") return "Waiting for players";
+    if (status === "OPEN_CONFIRMED") return "Confirmed";
+    return status;
+  }
+
+  const STEPS = [
+    { n: "01", label: "Pick a slot", done: true, active: false },
+    { n: "02", label: "Your details", done: true, active: false },
+    { n: "03", label: "Confirmed", done: false, active: true },
+  ];
+
   return (
-    <main className="min-h-screen pb-20">
-      <section className="container py-8 md:py-12">
+    <main className="min-h-screen">
+
+      {/* ── PAGE HEADER ──────────────────────────────────────────────── */}
+      <section className="container pt-12 pb-10 md:pt-20 md:pb-14">
         <FadeIn>
-          <SectionHeading
-            eyebrow="Booking confirmed"
-            title="Your futsal slot is locked in."
-            text={
-              gameType === "private"
-                ? "Your private game booking is ready. Payment will be collected at the venue."
-                : "Your open game is live. Other players can now join this slot."
-            }
-          />
-          <BookingProgress currentStep={3} />
+          <span className="eyebrow">Step 03 · Confirmed</span>
+          <h1
+            style={{
+              fontFamily: "var(--f-sans)",
+              fontWeight: 700,
+              fontSize: "clamp(2.4rem,5.5vw,4.8rem)",
+              letterSpacing: "-0.055em",
+              lineHeight: 0.96,
+              color: "var(--fg)",
+              marginTop: "1rem",
+              maxWidth: "18ch",
+            }}
+          >
+            {gameType === "private" ? "Your slot is locked." : "Your open game is live."}
+          </h1>
+          <p
+            style={{
+              marginTop: "1.25rem",
+              fontSize: "17px",
+              lineHeight: 1.7,
+              color: "var(--fg-3)",
+              maxWidth: "48ch",
+            }}
+          >
+            {gameType === "private"
+              ? "Payment is collected at the venue when you arrive. No action needed until then."
+              : "Other players can now join your slot until it reaches 10 players."}
+          </p>
         </FadeIn>
 
-        <div className="mt-8 grid gap-6 lg:grid-cols-[1.02fr_0.98fr]">
-          <FadeIn delay={0.08}>
-            <div className="card-strong glow overflow-hidden p-5 md:p-6">
-              <div className="flex items-start gap-4">
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[22px] border border-[#476B0D] bg-[#22310D]">
-                  <CheckCircle2 className="text-[#B8FF3B]" size={28} />
+        {/* Step strip */}
+        <FadeIn delay={0.08}>
+          <div
+            style={{
+              marginTop: "2.5rem",
+              display: "grid",
+              gridTemplateColumns: "repeat(3, 1fr)",
+              borderTop: "1px solid var(--line)",
+              borderBottom: "1px solid var(--line)",
+            }}
+          >
+            {STEPS.map((step, i) => (
+              <div
+                key={step.n}
+                style={{
+                  padding: "1rem 0",
+                  paddingLeft: i === 0 ? 0 : "1.25rem",
+                  paddingRight: i === 2 ? 0 : "1.25rem",
+                  borderRight: i < 2 ? "1px solid var(--line)" : undefined,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.625rem",
+                }}
+              >
+                <span
+                  style={{
+                    fontFamily: "var(--f-mono)",
+                    fontSize: "11px",
+                    letterSpacing: "0.14em",
+                    flexShrink: 0,
+                    color: step.active ? "var(--accent)" : "var(--fg-dim)",
+                  }}
+                >
+                  {step.n}
+                </span>
+                <span
+                  style={{
+                    fontSize: "13px",
+                    fontWeight: step.active ? 600 : 400,
+                    letterSpacing: "-0.01em",
+                    color: step.active ? "var(--fg)" : "var(--fg-3)",
+                  }}
+                >
+                  {step.label}
+                </span>
+                {step.done && (
+                  <CheckCircle2
+                    size={12}
+                    style={{ color: "var(--accent)", opacity: 0.7, marginLeft: "auto", flexShrink: 0 }}
+                  />
+                )}
+                {step.active && (
+                  <span
+                    style={{
+                      marginLeft: "auto",
+                      flexShrink: 0,
+                      width: 6,
+                      height: 6,
+                      borderRadius: "50%",
+                      background: "var(--accent)",
+                    }}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        </FadeIn>
+      </section>
+
+      {/* ── MAIN GRID ────────────────────────────────────────────────── */}
+      <section className="container pb-24">
+        <div className="grid gap-8 lg:gap-12 lg:grid-cols-[1fr_380px] items-start">
+
+          {/* ── LEFT: confirmation details ───────────────────────────── */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "0" }}>
+
+            <FadeIn delay={0.06}>
+              {/* Confirmation hero */}
+              <div
+                style={{
+                  border: "1px solid var(--line)",
+                  borderRadius: "20px",
+                  background: "var(--bg-soft)",
+                  overflow: "hidden",
+                  marginBottom: "1.5rem",
+                }}
+              >
+                {/* Confirmed header */}
+                <div
+                  style={{
+                    padding: "1.5rem 1.75rem",
+                    borderBottom: "1px solid var(--line)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "1rem",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: "50%",
+                      border: "1px solid rgba(184,255,59,0.3)",
+                      background: "rgba(184,255,59,0.08)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <CheckCircle2 size={20} style={{ color: "var(--accent)" }} />
+                  </div>
+                  <div>
+                    <p style={{ fontSize: "17px", fontWeight: 600, color: "var(--fg)", letterSpacing: "-0.02em" }}>
+                      Booking confirmed
+                    </p>
+                    <p style={{ fontSize: "13px", color: "var(--fg-3)", marginTop: 2 }}>
+                      {gameType === "private"
+                        ? "Reserved for your group only."
+                        : "Now listed as an open game. Players can join."}
+                    </p>
+                  </div>
                 </div>
 
-                <div className="min-w-0">
-                  <p className="text-2xl font-semibold tracking-[-0.03em] text-white md:text-3xl">
-                    Booking successful
+                {/* Date */}
+                <div style={{ padding: "1.25rem 1.75rem", borderBottom: "1px solid var(--line)", display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                  <CalendarDays size={14} style={{ color: "var(--fg-dim)", flexShrink: 0 }} />
+                  <div>
+                    <RowLabel>Date</RowLabel>
+                    <p style={{ fontSize: "18px", fontWeight: 600, letterSpacing: "-0.03em", color: "var(--fg)", marginTop: 4 }}>
+                      {format(parsedDate, "EEEE, MMM d")}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Status + payment */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr" }}>
+                  <div style={{ padding: "1.25rem 1.75rem", borderBottom: "1px solid var(--line)", borderRight: "1px solid var(--line)" }}>
+                    <RowLabel>Status</RowLabel>
+                    <p style={{ fontSize: "15px", fontWeight: 500, color: "var(--fg)", marginTop: "0.5rem" }}>
+                      {statusLabel(booking.status)}
+                    </p>
+                  </div>
+                  <div style={{ padding: "1.25rem 1.75rem", borderBottom: "1px solid var(--line)" }}>
+                    <RowLabel>Payment</RowLabel>
+                    <p style={{ fontSize: "15px", fontWeight: 500, color: booking.paymentStatus === "PAID" ? "var(--accent)" : "var(--fg)", marginTop: "0.5rem" }}>
+                      {booking.paymentStatus === "PAID" ? "Paid" : "Pay at venue"}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Booked for */}
+                <div style={{ padding: "1.25rem 1.75rem", borderBottom: "1px solid var(--line)" }}>
+                  <RowLabel>Booked for</RowLabel>
+                  <p style={{ fontSize: "16px", fontWeight: 600, color: "var(--fg)", marginTop: "0.5rem", letterSpacing: "-0.02em" }}>
+                    {booking.user.name || "Customer"}
                   </p>
-                  <p className="mt-2 text-sm leading-8 text-[#94A3B8] md:text-base">
-                    {gameType === "private"
-                      ? "This slot is reserved for your own group."
-                      : "This booking is now listed as an open game and more players can join until it fills up."}
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-6 grid gap-4 md:grid-cols-3">
-                <div className="rounded-[22px] border border-white/10 bg-white/[0.04] p-4">
-                  <div className="flex items-center gap-2 text-sm text-[#94A3B8]">
-                    <CalendarDays size={14} className="text-[#B8FF3B]" />
-                    Date
-                  </div>
-                  <p className="mt-2 text-lg font-semibold tracking-[-0.02em] text-white">
-                    {format(parsedDate, "EEEE, MMM d")}
-                  </p>
-                </div>
-
-                <div className="rounded-[22px] border border-white/10 bg-white/[0.04] p-4">
-                  <div className="flex items-center gap-2 text-sm text-[#94A3B8]">
-                    <Wallet size={14} className="text-[#B8FF3B]" />
-                    Payment
-                  </div>
-                  <div className="mt-2">
-                    <span
-                      className={`inline-flex rounded-full border px-3 py-1 text-sm ${
-                        booking.paymentStatus === "PAID"
-                          ? "border-[#1E4D33] bg-[#10261B] text-[#7EF7C1]"
-                          : "border-[#6C5A14] bg-[#2B2411] text-[#F4D35E]"
-                      }`}
-                    >
-                      {booking.paymentStatus === "PAID"
-                        ? "Paid"
-                        : "Pay at venue"}
-                    </span>
-                  </div>
-                </div>
-                <div className="rounded-[22px] border border-white/10 bg-white/[0.04] p-4">
-                  <div className="flex items-center gap-2 text-sm text-[#94A3B8]">
-                    <CheckCircle2 size={14} className="text-[#B8FF3B]" />
-                    Status
-                  </div>
-                  <p className="mt-2 text-lg font-semibold tracking-[-0.02em] text-white">
-                    {booking.status === "PRIVATE_CONFIRMED"
-                      ? "Confirmed"
-                      : booking.status === "OPEN_PENDING_FILL"
-                        ? "Open game pending fill"
-                        : booking.status === "OPEN_CONFIRMED"
-                          ? "Open game confirmed"
-                          : booking.status}
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-4 rounded-[22px] border border-white/10 bg-white/[0.04] p-4">
-                <div className="flex items-center gap-2 text-sm text-[#94A3B8]">
-                  <Phone size={14} className="text-[#B8FF3B]" />
-                  Booked for
-                </div>
-                <p className="mt-2 text-lg font-semibold tracking-[-0.02em] text-white">
-                  {booking.user.name || "Customer"}
-                </p>
-                <p className="mt-1 text-sm text-[#94A3B8]">
-                  {booking.user.phone || "No phone provided"}
-                </p>
-              </div>
-
-              <div className="mt-4 rounded-[22px] border border-white/10 bg-white/[0.04] p-4">
-                <p className="text-sm text-[#94A3B8]">What to expect now</p>
-                <div className="mt-3 grid gap-3 md:grid-cols-3">
-                  <div className="rounded-2xl border border-white/10 bg-[#121821] px-3 py-3 text-sm text-[#D7DEE7]">
-                    Your slot is already reserved for the selected time.
-                  </div>
-                  <div className="rounded-2xl border border-white/10 bg-[#121821] px-3 py-3 text-sm text-[#D7DEE7]">
-                    Payment is collected at the venue when you arrive.
-                  </div>
-                  <div className="rounded-2xl border border-white/10 bg-[#121821] px-3 py-3 text-sm text-[#D7DEE7]">
-                    If this is an open game, more players can now join.
-                  </div>
-                </div>
-              </div>
-
-              {gameType === "open" && (
-                <div className="mt-4 rounded-[22px] border border-[#476B0D] bg-[#18220C] p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[16px] border border-[#476B0D] bg-[#22310D] text-[#B8FF3B]">
-                      <Users size={18} />
-                    </div>
-
-                    <div>
-                      <p className="text-base font-medium text-white">
-                        Open game created
-                      </p>
-                      <p className="mt-2 text-sm leading-7 text-[#C9D2DC]">
-                        You currently have {playersCount} player
-                        {playersCount > 1 ? "s" : ""} and need{" "}
-                        {remainingPlayersNeeded} more to reach 10 players.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-                <Link href="/book">
-                  <Button className="w-full sm:w-auto">
-                    Book Another Slot
-                  </Button>
-                </Link>
-
-                <Link href={gameType === "open" ? "/games" : "/"}>
-                  <Button variant="secondary" className="w-full sm:w-auto">
-                    {gameType === "open" ? "View Open Games" : "Back to Home"}
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          </FadeIn>
-
-          <FadeIn delay={0.14}>
-            <div className="card-strong p-5 md:p-6">
-              <p className="section-eyebrow">Booking summary</p>
-
-              <div className="mt-5 space-y-4">
-                <div className="rounded-[22px] border border-white/10 bg-white/[0.04] p-4">
-                  <p className="text-sm text-[#94A3B8]">Game type</p>
-
-                  <div className="mt-3 flex items-start gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[16px] border border-white/10 bg-white/[0.04] text-[#B8FF3B]">
-                      {gameType === "private" ? (
-                        <Lock size={18} />
-                      ) : (
-                        <Users size={18} />
-                      )}
-                    </div>
-
-                    <div>
-                      <p className="text-base font-medium text-white">
-                        {gameType === "private" ? "Private Game" : "Open Game"}
-                      </p>
-                      <p className="mt-1 text-sm leading-7 text-[#94A3B8]">
-                        {gameType === "private"
-                          ? "Reserved only for your own players."
-                          : `You currently have ${playersCount} player${
-                              playersCount > 1 ? "s" : ""
-                            } and need ${remainingPlayersNeeded} more.`}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="rounded-[22px] border border-white/10 bg-white/[0.04] p-4">
-                  <p className="text-sm text-[#94A3B8]">Reserved slots</p>
-
-                  {slots.length > 0 ? (
-                    <div className="mt-3 space-y-2">
-                      {slots.map((slot: Slot, index: number) => (
-                        <div
-                          key={`${slot.time}-${index}`}
-                          className="flex items-center justify-between rounded-2xl border border-white/10 bg-[#121821] px-3 py-3"
-                        >
-                          <span className="text-sm font-medium text-white">
-                            {slot.time}
-                          </span>
-                          <span className="text-sm text-[#94A3B8]">
-                            NPR {slot.price}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="mt-3 text-sm text-[#94A3B8]">
-                      Slot details unavailable.
+                  {booking.user.phone && (
+                    <p style={{ fontSize: "13px", color: "var(--fg-dim)", marginTop: 2 }}>
+                      {booking.user.phone}
                     </p>
                   )}
                 </div>
 
-                <div className="rounded-[22px] border border-white/10 bg-white/[0.04] p-4">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm text-[#94A3B8]">Duration</p>
-                    <p className="font-medium text-white">
-                      {slots.length} hour{slots.length > 1 ? "s" : ""}
-                    </p>
+                {/* Open game note */}
+                {gameType === "open" && (
+                  <div style={{ padding: "1.25rem 1.75rem", borderBottom: "1px solid var(--line)", display: "flex", gap: "0.75rem", alignItems: "flex-start" }}>
+                    <Users size={14} style={{ color: "var(--accent)", marginTop: 2, flexShrink: 0 }} />
+                    <div>
+                      <p style={{ fontSize: "14px", fontWeight: 500, color: "var(--fg)" }}>Open game created</p>
+                      <p style={{ fontSize: "13px", color: "var(--fg-3)", marginTop: 4, lineHeight: 1.55 }}>
+                        {playersCount} player{playersCount > 1 ? "s" : ""} confirmed,{" "}
+                        {remainingPlayersNeeded} spot{remainingPlayersNeeded !== 1 ? "s" : ""} remaining.
+                      </p>
+                    </div>
                   </div>
+                )}
 
-                  <div className="mt-3 flex items-center justify-between">
-                    <p className="text-sm text-[#94A3B8]">Total amount</p>
-                    <p className="text-2xl font-semibold tracking-[-0.03em] text-white">
-                      NPR {total}
-                    </p>
+                {/* What to expect */}
+                <div style={{ padding: "1.25rem 1.75rem" }}>
+                  <RowLabel>What happens now</RowLabel>
+                  <div style={{ marginTop: "0.875rem", display: "flex", flexDirection: "column", gap: "0.625rem" }}>
+                    {[
+                      "Your slot is already reserved for the selected time.",
+                      "Payment is collected at the venue when you arrive.",
+                      gameType === "open" ? "Other players can join this game from the open games page." : "Show up a few minutes before your slot starts.",
+                    ].map((step, i) => (
+                      <div key={i} style={{ display: "flex", gap: "0.75rem", alignItems: "baseline" }}>
+                        <span style={{ fontFamily: "var(--f-mono)", fontSize: "10px", color: "var(--fg-faint)", flexShrink: 0, letterSpacing: "0.08em" }}>
+                          0{i + 1}
+                        </span>
+                        <p style={{ fontSize: "13px", color: "var(--fg-3)", lineHeight: 1.55, margin: 0 }}>{step}</p>
+                      </div>
+                    ))}
                   </div>
                 </div>
+              </div>
 
-                <div className="rounded-[22px] border border-white/10 bg-white/[0.04] p-4">
-                  <p className="text-sm text-[#94A3B8]">What happens next</p>
-                  <p className="mt-2 text-sm leading-7 text-[#94A3B8]">
-                    {gameType === "private"
-                      ? "Arrive a little before your booked time and complete payment at the venue."
-                      : "Your game is now visible for other players to join."}
+              {/* Actions */}
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem" }}>
+                <Link href="/book" className="btn btn-primary btn-lg">
+                  Book another slot
+                  <span className="btn-icon-wrap"><ArrowRight size={13} /></span>
+                </Link>
+                <Link href={gameType === "open" ? "/games" : "/"} className="btn btn-ghost btn-lg">
+                  {gameType === "open" ? "View open games" : "Back to home"}
+                </Link>
+              </div>
+            </FadeIn>
+          </div>
+
+          {/* ── RIGHT: summary panel ─────────────────────────────────── */}
+          <FadeIn delay={0.12}>
+            <div
+              style={{
+                position: "sticky",
+                top: "calc(80px + 1.5rem)",
+                border: "1px solid var(--line)",
+                borderRadius: "24px",
+                background: "var(--bg-soft)",
+                overflow: "hidden",
+              }}
+            >
+              <div style={{ padding: "1.375rem 1.75rem", borderBottom: "1px solid var(--line)" }}>
+                <span className="eyebrow">Booking summary</span>
+              </div>
+
+              {/* Game type */}
+              <div style={{ padding: "1.25rem 1.75rem", borderBottom: "1px solid var(--line)", display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                {gameType === "private"
+                  ? <Lock size={13} style={{ color: "var(--fg-dim)", flexShrink: 0 }} />
+                  : <Users size={13} style={{ color: "var(--fg-dim)", flexShrink: 0 }} />}
+                <div>
+                  <p style={{ fontSize: "14px", fontWeight: 500, color: "var(--fg)" }}>
+                    {gameType === "private" ? "Private game" : "Open game"}
                   </p>
+                  <p style={{ fontSize: "12px", color: "var(--fg-dim)", marginTop: 3 }}>
+                    {gameType === "private"
+                      ? "Reserved for your group only"
+                      : `${playersCount} confirmed · ${remainingPlayersNeeded} spots open`}
+                  </p>
+                </div>
+              </div>
+
+              {/* Slots */}
+              <div style={{ padding: "1.25rem 1.75rem", borderBottom: "1px solid var(--line)" }}>
+                <RowLabel>Reserved slots</RowLabel>
+                {slots.length > 0 ? (
+                  <div style={{ marginTop: "0.875rem", display: "flex", flexDirection: "column", gap: "0.625rem" }}>
+                    {slots.map((slot, i) => (
+                      <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span style={{ fontSize: "14px", fontWeight: 500, color: "var(--fg)" }}>{slot.time}</span>
+                        <span style={{ fontFamily: "var(--f-mono)", fontSize: "13px", color: "var(--fg-3)", fontVariantNumeric: "tabular-nums" }}>
+                          NPR {slot.price.toLocaleString()}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p style={{ marginTop: "0.5rem", fontSize: "14px", color: "var(--fg-dim)" }}>Slot details unavailable.</p>
+                )}
+              </div>
+
+              {/* Total */}
+              <div style={{ padding: "1.25rem 1.75rem" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+                  <div>
+                    <RowLabel>Total</RowLabel>
+                    <p style={{ fontSize: "12px", color: "var(--fg-dim)", marginTop: 5 }}>
+                      {slots.length} hr · pay at venue
+                    </p>
+                  </div>
+                  <span
+                    style={{
+                      fontFamily: "var(--f-mono)",
+                      fontSize: "clamp(26px,2.8vw,34px)",
+                      fontWeight: 600,
+                      letterSpacing: "-0.045em",
+                      color: "var(--fg)",
+                      fontVariantNumeric: "tabular-nums",
+                      lineHeight: 1,
+                    }}
+                  >
+                    NPR {total.toLocaleString()}
+                  </span>
                 </div>
               </div>
             </div>
           </FadeIn>
+
         </div>
       </section>
     </main>

@@ -10,7 +10,6 @@ import {
   parseISO,
 } from "date-fns";
 import { ArrowRight } from "lucide-react";
-import Button from "@/components/ui/button";
 import FadeIn from "@/components/ui/fade-in";
 import ModalShell from "@/components/ui/modal-shell";
 import StatePanel from "@/components/ui/state-panel";
@@ -446,13 +445,9 @@ export default function GamesPage() {
             title="The open games list didn't come through"
             text={gamesError}
             actions={
-              <Button
-                variant="secondary"
-                className="rounded-[999px]"
-                onClick={() => fetchGames()}
-              >
-                Try Again
-              </Button>
+              <button className="btn btn-ghost" onClick={() => fetchGames()}>
+                Try again
+              </button>
             }
           />
         ) : activeGames.length === 0 ? (
@@ -462,19 +457,12 @@ export default function GamesPage() {
             text="Once a host creates an open game, it will appear here until the cutoff passes. You can still book your own slot and create the next match others join."
             actions={
               <>
-                <Button
-                  className="rounded-[999px]"
-                  onClick={() => router.push("/book")}
-                >
-                  Book a Slot
-                </Button>
-                <Button
-                  variant="secondary"
-                  className="rounded-[999px]"
-                  onClick={() => fetchGames()}
-                >
+                <button className="btn btn-primary" onClick={() => router.push("/book")}>
+                  Book a slot <span className="btn-icon-wrap"><ArrowRight size={13} /></span>
+                </button>
+                <button className="btn btn-ghost" onClick={() => fetchGames()}>
                   Refresh
-                </Button>
+                </button>
               </>
             }
           />
@@ -1016,44 +1004,41 @@ export default function GamesPage() {
                 }}
               >
                 {status === "loading" ? (
-                  <Button
-                    className="w-full rounded-[999px]"
-                    disabled
-                  >
+                  <button className="btn btn-primary btn-lg" style={{ width: "100%" }} disabled>
                     Checking account…
-                  </Button>
+                  </button>
                 ) : session?.user ? (
-                  <Button
-                    className="w-full rounded-[999px]"
+                  <button
+                    className="btn btn-primary btn-lg"
+                    style={{ width: "100%", boxShadow: "0 10px 30px rgba(184,255,59,0.16)" }}
                     disabled={!canJoin || joining}
                     onClick={handleJoin}
                   >
-                    {joining ? "Joining…" : "Confirm Join"}
-                  </Button>
+                    {joining ? "Joining…" : <>Confirm join <span className="btn-icon-wrap"><ArrowRight size={13} /></span></>}
+                  </button>
                 ) : (
-                  <Button
-                    className="w-full rounded-[999px]"
+                  <button
+                    className="btn btn-primary btn-lg"
+                    style={{ width: "100%" }}
                     onClick={() => {
                       const currentUrl =
                         typeof window !== "undefined"
                           ? window.location.pathname + window.location.search
                           : "/games";
-                      router.push(
-                        `/login?callbackUrl=${encodeURIComponent(currentUrl)}`,
-                      );
+                      router.push(`/login?callbackUrl=${encodeURIComponent(currentUrl)}`);
                     }}
                   >
-                    Login to Join
-                  </Button>
+                    Sign in to join <span className="btn-icon-wrap"><ArrowRight size={13} /></span>
+                  </button>
                 )}
 
-                <Button
-                  variant="secondary"
-                  className="w-full rounded-[999px]"
+                <button
+                  className="btn btn-ghost btn-lg"
+                  style={{ width: "100%" }}
                   onClick={() => setSelectedGame(null)}
                 >
                   Cancel
-                </Button>
+                </button>
 
                 {!session?.user && status !== "loading" && (
                   <p

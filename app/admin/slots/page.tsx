@@ -3,8 +3,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { addDays, format } from "date-fns";
 import { useRouter } from "next/navigation";
-import { CalendarDays, Clock3, Lock } from "lucide-react";
-import Button from "@/components/ui/button";
 import StatePanel from "@/components/ui/state-panel";
 import { getErrorMessage } from "@/lib/utils/error-message";
 
@@ -17,9 +15,7 @@ type BookingSlotApi = {
   booking: {
     id: string;
     bookingType: "PRIVATE" | "OPEN";
-    user: {
-      name: string;
-    };
+    user: { name: string };
   };
 };
 
@@ -60,16 +56,28 @@ function priceForHour(hour: number) {
   return 1200;
 }
 
-function statusClasses(status: SlotRow["status"]) {
-  if (status === "available") {
-    return "border-[#1E4D33] bg-[#10261B] text-[#7EF7C1]";
-  }
+function slotStatusColor(status: SlotRow["status"]): string {
+  if (status === "available") return "#7EF7C1";
+  if (status === "booked") return "var(--accent)";
+  return "rgba(255,150,150,0.8)";
+}
 
-  if (status === "booked") {
-    return "border-[#476B0D] bg-[#22310D] text-[#B8FF3B]";
-  }
-
-  return "border-[#4D2A2F] bg-[#241519] text-[#FF9999]";
+function StatusBadge({ color, children }: { color: string; children: React.ReactNode }) {
+  return (
+    <span
+      style={{
+        fontSize: "11px",
+        fontWeight: 500,
+        padding: "3px 10px",
+        borderRadius: "999px",
+        border: "1px solid rgba(255,255,255,0.1)",
+        color,
+        whiteSpace: "nowrap",
+      }}
+    >
+      {children}
+    </span>
+  );
 }
 
 export default function AdminSlotsPage() {
@@ -82,41 +90,24 @@ export default function AdminSlotsPage() {
   const [actionError, setActionError] = useState("");
   const [processingKey, setProcessingKey] = useState("");
 
-  const weekDates = useMemo(() => {
-    return Array.from({ length: 7 }).map((_, i) => addDays(new Date(), i));
-  }, []);
-
-  const targetDate = useMemo(() => {
-    return format(selectedDate, "yyyy-MM-dd");
-  }, [selectedDate]);
+  const weekDates = useMemo(() => Array.from({ length: 7 }).map((_, i) => addDays(new Date(), i)), []);
+  const targetDate = useMemo(() => format(selectedDate, "yyyy-MM-dd"), [selectedDate]);
 
   const fetchSlots = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
-
-      const res = await fetch(`/api/slots?date=${targetDate}`, {
-        cache: "no-store",
-      });
+      const res = await fetch(`/api/slots?date=${targetDate}`, { cache: "no-store" });
       const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data?.error || "Failed to load slots");
-      }
+      if (!res.ok) throw new Error(data?.error || "Failed to load slots");
 
       const bookingSlots: BookingSlotApi[] = data.bookingSlots || [];
       const blockedSlots: SlotBlockApi[] = data.blockedSlots || [];
 
       const rows: SlotRow[] = [];
-
       for (let hour = 7; hour < 22; hour++) {
-        const bookingSlot = bookingSlots.find(
-          (slot) => slot.startHour === hour && slot.endHour === hour + 1,
-        );
-
-        const blockedSlot = blockedSlots.find(
-          (slot) => slot.startHour === hour && slot.endHour === hour + 1,
-        );
+        const bookingSlot = bookingSlots.find((s) => s.startHour === hour && s.endHour === hour + 1);
+        const blockedSlot = blockedSlots.find((s) => s.startHour === hour && s.endHour === hour + 1);
 
         if (bookingSlot) {
           rows.push({
@@ -125,10 +116,7 @@ export default function AdminSlotsPage() {
             endHour: hour + 1,
             price: bookingSlot.price,
             status: "booked",
-            bookingType:
-              bookingSlot.booking.bookingType === "PRIVATE"
-                ? "Private"
-                : "Open",
+            bookingType: bookingSlot.booking.bookingType === "PRIVATE" ? "Private" : "Open",
             customer: bookingSlot.booking.user.name,
             bookingId: bookingSlot.booking.id,
           });
@@ -152,19 +140,16 @@ export default function AdminSlotsPage() {
           });
         }
       }
-
       setSlots(rows);
-    } catch (error: unknown) {
-      setError(getErrorMessage(error, "Failed to load slots"));
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Failed to load slots"));
       setSlots([]);
     } finally {
       setLoading(false);
     }
   }, [targetDate]);
 
-  useEffect(() => {
-    fetchSlots();
-  }, [fetchSlots]);
+  useEffect(() => { fetchSlots(); }, [fetchSlots]);
 
   const handleBlock = async (slot: SlotRow) => {
     try {
@@ -174,27 +159,15 @@ export default function AdminSlotsPage() {
       setActionMessage("");
       const res = await fetch("/api/slots/block", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          blockDate: targetDate,
-          startHour: slot.startHour,
-          endHour: slot.endHour,
-          reason: "ADMIN_BLOCK",
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ blockDate: targetDate, startHour: slot.startHour, endHour: slot.endHour, reason: "ADMIN_BLOCK" }),
       });
-
       const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data?.error || "Failed to block slot");
-      }
-
+      if (!res.ok) throw new Error(data?.error || "Failed to block slot");
       setActionMessage(`Blocked ${slot.time}.`);
       await fetchSlots();
-    } catch (error: unknown) {
-      setActionError(getErrorMessage(error, "Error blocking slot"));
+    } catch (err: unknown) {
+      setActionError(getErrorMessage(err, "Error blocking slot"));
     } finally {
       setProcessingKey("");
     }
@@ -207,24 +180,15 @@ export default function AdminSlotsPage() {
       setActionMessage("");
       const res = await fetch("/api/slots/unblock", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          slotBlockId,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slotBlockId }),
       });
-
       const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data?.error || "Failed to unblock slot");
-      }
-
+      if (!res.ok) throw new Error(data?.error || "Failed to unblock slot");
       setActionMessage("Slot reopened successfully.");
       await fetchSlots();
-    } catch (error: unknown) {
-      setActionError(getErrorMessage(error, "Error unblocking slot"));
+    } catch (err: unknown) {
+      setActionError(getErrorMessage(err, "Error unblocking slot"));
     } finally {
       setProcessingKey("");
     }
@@ -232,308 +196,269 @@ export default function AdminSlotsPage() {
 
   const handleCancelBooking = async (bookingId: string) => {
     if (!confirm("Cancel this booking?")) return;
-
     try {
       setProcessingKey(`${bookingId}-cancel`);
       setActionError("");
       setActionMessage("");
       const res = await fetch("/api/bookings/cancel", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          bookingId,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookingId }),
       });
-
       const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data?.error || "Failed to cancel booking");
-      }
-
+      if (!res.ok) throw new Error(data?.error || "Failed to cancel booking");
       setActionMessage("Booking cancelled and slot reopened.");
       await fetchSlots();
-    } catch (fetchError: unknown) {
-      setActionError(getErrorMessage(fetchError, "Error cancelling booking"));
+    } catch (err: unknown) {
+      setActionError(getErrorMessage(err, "Error cancelling booking"));
     } finally {
       setProcessingKey("");
     }
   };
 
-  const availableCount = slots.filter(
-    (slot) => slot.status === "available",
-  ).length;
-  const bookedCount = slots.filter((slot) => slot.status === "booked").length;
-  const blockedCount = slots.filter((slot) => slot.status === "blocked").length;
+  const availableCount = slots.filter((s) => s.status === "available").length;
+  const bookedCount = slots.filter((s) => s.status === "booked").length;
+  const blockedCount = slots.filter((s) => s.status === "blocked").length;
+
+  const stats = [
+    { label: "Available", value: availableCount, color: "#7EF7C1" },
+    { label: "Booked", value: bookedCount, color: "var(--accent)" },
+    { label: "Blocked", value: blockedCount, color: "rgba(255,150,150,0.8)" },
+  ];
 
   return (
     <main className="min-h-screen pb-20">
       <section className="container py-8 md:py-12">
-        <div className="mb-8">
-          <p className="text-sm uppercase tracking-[0.2em] text-[#B8FF3B]">
-            Admin
-          </p>
-          <h1 className="mt-2 text-3xl font-semibold text-white md:text-4xl">
-            Slots
-          </h1>
-          <p className="mt-2 text-[#94A3B8]">
-            Manage availability, block time, and control the weekly schedule.
-          </p>
-        </div>
 
-        <div className="mb-6 grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-7">
+        {/* ── PAGE HEADER ─────────────────────────────────────────────── */}
+        <span className="eyebrow">Admin</span>
+        <h1
+          style={{
+            fontFamily: "var(--f-sans)",
+            fontWeight: 700,
+            fontSize: "clamp(2rem,4.5vw,3.8rem)",
+            letterSpacing: "-0.055em",
+            lineHeight: 0.96,
+            color: "var(--fg)",
+            marginTop: "1rem",
+          }}
+        >
+          Slots.
+        </h1>
+        <p style={{ marginTop: "1rem", fontSize: "16px", lineHeight: 1.7, color: "var(--fg-3)", maxWidth: "52ch" }}>
+          Manage availability, block time, and control the weekly schedule.
+        </p>
+
+        {/* ── DAY PICKER ──────────────────────────────────────────────── */}
+        <div style={{ marginTop: "2rem", display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "0.5rem" }}>
           {weekDates.map((date) => {
-            const isActive =
-              format(date, "yyyy-MM-dd") === format(selectedDate, "yyyy-MM-dd");
-
+            const isActive = format(date, "yyyy-MM-dd") === format(selectedDate, "yyyy-MM-dd");
             return (
               <button
                 key={date.toISOString()}
                 type="button"
                 onClick={() => setSelectedDate(date)}
-                className={`rounded-[16px] border px-3 py-3 text-sm transition ${
-                  isActive
-                    ? "border-[#B8FF3B] bg-[#B8FF3B] text-black"
-                    : "border-white/10 bg-white/[0.04] text-white"
-                }`}
+                style={{
+                  borderRadius: "14px",
+                  border: `1px solid ${isActive ? "var(--accent)" : "var(--line)"}`,
+                  background: isActive ? "var(--accent)" : "var(--bg-soft)",
+                  color: isActive ? "#000" : "var(--fg)",
+                  padding: "0.625rem 0.25rem",
+                  cursor: "pointer",
+                  transition: "all .15s",
+                  textAlign: "center",
+                }}
               >
-                <div className="text-xs">{format(date, "EEE")}</div>
-                <div className="text-lg font-semibold">{format(date, "d")}</div>
+                <div style={{ fontSize: "10px", fontFamily: "var(--f-mono)", letterSpacing: "0.06em", textTransform: "uppercase", opacity: isActive ? 0.7 : 1 }}>
+                  {format(date, "EEE")}
+                </div>
+                <div style={{ fontSize: "18px", fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1.2, marginTop: "0.2rem" }}>
+                  {format(date, "d")}
+                </div>
               </button>
             );
           })}
         </div>
 
+        {/* ── STATS STRIP ─────────────────────────────────────────────── */}
+        <div
+          style={{
+            marginTop: "2rem",
+            display: "grid",
+            gridTemplateColumns: "repeat(3, 1fr)",
+            borderTop: "1px solid var(--line)",
+            borderBottom: "1px solid var(--line)",
+            marginBottom: "2rem",
+          }}
+        >
+          {stats.map((s, i) => (
+            <div
+              key={s.label}
+              style={{
+                padding: "1rem 0",
+                paddingLeft: i === 0 ? 0 : "1.25rem",
+                paddingRight: i === stats.length - 1 ? 0 : "1.25rem",
+                borderRight: i < stats.length - 1 ? "1px solid var(--line)" : undefined,
+              }}
+            >
+              <span style={{ fontFamily: "var(--f-mono)", fontSize: "10px", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--fg-dim)", display: "block", marginBottom: "0.375rem" }}>
+                {s.label}
+              </span>
+              <span style={{ fontFamily: "var(--f-mono)", fontSize: "clamp(24px,2.5vw,36px)", fontWeight: 600, letterSpacing: "-0.04em", color: s.color, lineHeight: 1 }}>
+                {s.value}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* ── FEEDBACK ────────────────────────────────────────────────── */}
         {error && (
-          <div className="mb-6">
+          <div style={{ marginBottom: "1.5rem" }}>
             <StatePanel
               variant="error"
-              eyebrow="Couldn’t load slots"
-              title="The slot board didn’t load correctly"
+              eyebrow="Couldn't load slots"
+              title="The slot board didn't load correctly"
               text={error}
               actions={
-                <Button
-                  variant="secondary"
-                  className="rounded-[999px]"
-                  onClick={() => fetchSlots()}
-                >
-                  Try Again
-                </Button>
+                <button className="btn btn-ghost btn-sm" onClick={() => fetchSlots()}>
+                  Try again
+                </button>
               }
             />
           </div>
         )}
-
         {actionError && (
-          <div className="mb-6">
-            <StatePanel
-              variant="error"
-              eyebrow="Action failed"
-              title="The slot action did not complete"
-              text={actionError}
-              className="rounded-[24px] p-4 shadow-none"
-            />
+          <div style={{ marginBottom: "1.25rem", padding: "0.75rem 1rem", borderRadius: "12px", border: "1px solid rgba(255,100,100,0.2)", background: "rgba(255,80,80,0.04)" }}>
+            <p style={{ fontSize: "13px", color: "rgba(255,150,150,0.9)", margin: 0 }}>{actionError}</p>
           </div>
         )}
-
         {actionMessage && (
-          <div className="mb-6">
-            <StatePanel
-              eyebrow="Updated"
-              title="Admin action completed"
-              text={actionMessage}
-              className="rounded-[24px] p-4 shadow-none"
-            />
+          <div style={{ marginBottom: "1.25rem", padding: "0.75rem 1rem", borderRadius: "12px", border: "1px solid rgba(184,255,59,0.18)", background: "rgba(184,255,59,0.04)" }}>
+            <p style={{ fontSize: "13px", color: "var(--accent)", margin: 0 }}>{actionMessage}</p>
           </div>
         )}
 
-        <div className="grid gap-6 xl:grid-cols-[1fr_300px]">
-          <div className="space-y-6">
-            <div className="space-y-4">
-              {loading ? (
+        {/* ── SLOT LIST ───────────────────────────────────────────────── */}
+        <div style={{ border: "1px solid var(--line)", borderRadius: "20px", background: "var(--bg-soft)", overflow: "hidden" }}>
+          <div style={{ padding: "1.375rem 1.75rem", borderBottom: "1px solid var(--line)" }}>
+            <span className="eyebrow">Schedule</span>
+            <p style={{ fontSize: "16px", fontWeight: 600, color: "var(--fg)", marginTop: "0.25rem" }}>
+              {format(selectedDate, "EEEE, MMMM d")}
+            </p>
+          </div>
+
+          <div style={{ padding: "0 1.75rem" }}>
+            {loading ? (
+              <div style={{ padding: "2rem 0" }}>
                 <StatePanel
                   variant="loading"
-                  eyebrow="Loading"
                   title="Building the slot board"
-                  text="We’re checking booked, blocked, and available time for the selected day."
+                  text="Checking booked, blocked, and available time for the selected day."
+                  className="rounded-[20px] p-5 shadow-none"
                 />
-              ) : (
-                slots.map((slot) => (
-                  <div
-                    key={`${targetDate}-${slot.startHour}-${slot.endHour}`}
-                    className="card-strong p-5 transition-all duration-300 hover:border-white/14"
-                  >
-                    <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p className="text-lg font-semibold tracking-[-0.02em] text-white">
-                            {slot.time}
-                          </p>
-                          <span
-                            className={`inline-flex rounded-full border px-3 py-1 text-xs ${statusClasses(
-                              slot.status,
-                            )}`}
-                          >
-                            {slot.status === "available"
-                              ? "Available"
-                              : slot.status === "booked"
-                                ? "Booked"
-                                : "Blocked"}
-                          </span>
-
-                          {slot.bookingType && (
-                            <span className="inline-flex rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-[#D7DEE7]">
-                              {slot.bookingType}
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                          <div className="flex items-center gap-2 text-sm text-[#94A3B8]">
-                            <Clock3 size={15} className="text-[#B8FF3B]" />
-                            <span className="text-white">NPR {slot.price}</span>
-                          </div>
-
-                          <div className="flex items-center gap-2 text-sm text-[#94A3B8]">
-                            <Lock size={15} className="text-[#B8FF3B]" />
-                            <span className="text-white">
-                              {slot.customer || "No customer assigned"}
-                            </span>
-                          </div>
-
-                          <div className="flex items-center gap-2 text-sm text-[#94A3B8]">
-                            <CalendarDays
-                              size={15}
-                              className="text-[#B8FF3B]"
-                            />
-                            <span className="text-white">
-                              {format(selectedDate, "EEEE, MMM d")}
-                            </span>
-                          </div>
-                        </div>
+              </div>
+            ) : (
+              slots.map((slot) => (
+                <div
+                  key={`${targetDate}-${slot.startHour}-${slot.endHour}`}
+                  style={{ borderTop: "1px solid var(--line)", padding: "1.25rem 0" }}
+                >
+                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
+                    {/* Left: time + status + info */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap", marginBottom: "0.625rem" }}>
+                        <p style={{ fontSize: "clamp(16px,1.8vw,20px)", fontWeight: 600, color: "var(--fg)", letterSpacing: "-0.03em" }}>
+                          {slot.time}
+                        </p>
+                        <StatusBadge color={slotStatusColor(slot.status)}>
+                          {slot.status === "available" ? "Available" : slot.status === "booked" ? "Booked" : "Blocked"}
+                        </StatusBadge>
+                        {slot.bookingType && (
+                          <StatusBadge color="var(--fg-3)">{slot.bookingType}</StatusBadge>
+                        )}
                       </div>
 
-                      <div className="flex w-full flex-col gap-3 lg:w-auto lg:min-w-[220px]">
-                        {slot.status === "available" && (
-                          <Button
-                            variant="secondary"
-                            className="rounded-[16px] px-4"
-                            onClick={() => handleBlock(slot)}
-                            disabled={
-                              processingKey ===
-                              `${slot.startHour}-${slot.endHour}-block`
-                            }
-                          >
-                            {processingKey ===
-                            `${slot.startHour}-${slot.endHour}-block`
-                              ? "Blocking..."
-                              : "Block Slot"}
-                          </Button>
-                        )}
-
-                        {slot.status === "booked" && (
-                          <>
-                            <Button
-                              className="rounded-[16px] px-4"
-                              onClick={() =>
-                                slot.bookingId &&
-                                router.push(
-                                  `/admin/bookings?search=${encodeURIComponent(slot.bookingId)}`,
-                                )
-                              }
-                              disabled={!slot.bookingId}
-                            >
-                              View Booking
-                            </Button>
-                            <Button
-                              variant="secondary"
-                              className="rounded-[16px] px-4"
-                              onClick={() =>
-                                slot.bookingId &&
-                                handleCancelBooking(slot.bookingId)
-                              }
-                              disabled={
-                                !slot.bookingId ||
-                                processingKey === `${slot.bookingId}-cancel`
-                              }
-                            >
-                              {processingKey === `${slot.bookingId}-cancel`
-                                ? "Cancelling..."
-                                : "Cancel Booking"}
-                            </Button>
-                          </>
-                        )}
-
-                        {slot.status === "blocked" && slot.slotBlockId && (
-                          <Button
-                            className="rounded-[16px] px-4"
-                            onClick={() => handleUnblock(slot.slotBlockId!)}
-                            disabled={
-                              processingKey === `${slot.slotBlockId}-unblock`
-                            }
-                          >
-                            {processingKey === `${slot.slotBlockId}-unblock`
-                              ? "Unblocking..."
-                              : "Unblock Slot"}
-                          </Button>
-                        )}
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: "1.25rem" }}>
+                        <div>
+                          <span style={{ fontFamily: "var(--f-mono)", fontSize: "10px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--fg-dim)", display: "block" }}>
+                            Rate
+                          </span>
+                          <span style={{ fontSize: "13px", color: "var(--fg-3)", marginTop: 2, display: "block", fontVariantNumeric: "tabular-nums" }}>
+                            NPR {slot.price.toLocaleString()}
+                          </span>
+                        </div>
+                        <div>
+                          <span style={{ fontFamily: "var(--f-mono)", fontSize: "10px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--fg-dim)", display: "block" }}>
+                            {slot.status === "booked" ? "Customer" : slot.status === "blocked" ? "Reason" : "Status"}
+                          </span>
+                          <span style={{ fontSize: "13px", color: "var(--fg-3)", marginTop: 2, display: "block" }}>
+                            {slot.customer || "Open for booking"}
+                          </span>
+                        </div>
                       </div>
                     </div>
+
+                    {/* Right: actions */}
+                    <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignSelf: "flex-start" }}>
+                      {slot.status === "available" && (
+                        <button
+                          className="btn btn-ghost btn-sm"
+                          onClick={() => handleBlock(slot)}
+                          disabled={processingKey === `${slot.startHour}-${slot.endHour}-block`}
+                        >
+                          {processingKey === `${slot.startHour}-${slot.endHour}-block` ? "Blocking..." : "Block slot"}
+                        </button>
+                      )}
+
+                      {slot.status === "booked" && (
+                        <>
+                          <button
+                            className="btn btn-ghost btn-sm"
+                            onClick={() =>
+                              slot.bookingId &&
+                              router.push(`/admin/bookings?search=${encodeURIComponent(slot.bookingId)}`)
+                            }
+                            disabled={!slot.bookingId}
+                          >
+                            View booking
+                          </button>
+                          <button
+                            className="btn btn-ghost btn-sm"
+                            onClick={() => slot.bookingId && handleCancelBooking(slot.bookingId)}
+                            disabled={!slot.bookingId || processingKey === `${slot.bookingId}-cancel`}
+                          >
+                            {processingKey === `${slot.bookingId}-cancel` ? "Cancelling..." : "Cancel"}
+                          </button>
+                        </>
+                      )}
+
+                      {slot.status === "blocked" && slot.slotBlockId && (
+                        <button
+                          className="btn btn-primary btn-sm"
+                          onClick={() => handleUnblock(slot.slotBlockId!)}
+                          disabled={processingKey === `${slot.slotBlockId}-unblock`}
+                        >
+                          {processingKey === `${slot.slotBlockId}-unblock` ? "Unblocking..." : "Unblock slot"}
+                        </button>
+                      )}
+                    </div>
                   </div>
-                ))
-              )}
-            </div>
+                </div>
+              ))
+            )}
           </div>
 
-          <div className="space-y-6">
-            <div className="card-strong p-5">
-              <p className="text-lg font-semibold text-white">Quick stats</p>
-
-              <div className="mt-4 space-y-3">
-                <div className="rounded-[18px] border border-white/10 bg-white/[0.04] px-4 py-3">
-                  <p className="text-sm text-[#94A3B8]">Available slots</p>
-                  <p className="mt-1 text-2xl font-semibold text-white">
-                    {availableCount}
-                  </p>
-                </div>
-
-                <div className="rounded-[18px] border border-white/10 bg-white/[0.04] px-4 py-3">
-                  <p className="text-sm text-[#94A3B8]">Booked slots</p>
-                  <p className="mt-1 text-2xl font-semibold text-white">
-                    {bookedCount}
-                  </p>
-                </div>
-
-                <div className="rounded-[18px] border border-white/10 bg-white/[0.04] px-4 py-3">
-                  <p className="text-sm text-[#94A3B8]">Blocked slots</p>
-                  <p className="mt-1 text-2xl font-semibold text-white">
-                    {blockedCount}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="card-strong p-5">
-              <p className="text-lg font-semibold text-white">Notes</p>
-              <div className="mt-4 space-y-3">
-                <div className="rounded-[18px] border border-white/10 bg-white/[0.04] px-4 py-3">
-                  <p className="text-sm leading-6 text-[#94A3B8]">
-                    Blocked slots are reserved for maintenance or admin-only
-                    closure.
-                  </p>
-                </div>
-                <div className="rounded-[18px] border border-white/10 bg-white/[0.04] px-4 py-3">
-                  <p className="text-sm leading-6 text-[#94A3B8]">
-                    Booked slots cannot be blocked until the booking is
-                    cancelled.
-                  </p>
-                </div>
-              </div>
-            </div>
+          {/* Notes footer */}
+          <div style={{ borderTop: "1px solid var(--line)", padding: "1.25rem 1.75rem" }}>
+            <span style={{ fontFamily: "var(--f-mono)", fontSize: "10px", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--fg-dim)", display: "block", marginBottom: "0.625rem" }}>
+              Notes
+            </span>
+            <p style={{ fontSize: "12px", color: "var(--fg-dim)", lineHeight: 1.65 }}>
+              Blocked slots are reserved for maintenance or admin closure. Booked slots cannot be blocked until the booking is cancelled first.
+            </p>
           </div>
         </div>
+
       </section>
     </main>
   );

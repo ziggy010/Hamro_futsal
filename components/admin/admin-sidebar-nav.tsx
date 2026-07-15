@@ -43,9 +43,7 @@ const adminLinks = [
   },
 ];
 
-type Props = {
-  mobile?: boolean;
-};
+type Props = { mobile?: boolean };
 
 export default function AdminSidebarNav({ mobile = false }: Props) {
   const pathname = usePathname();
@@ -53,21 +51,30 @@ export default function AdminSidebarNav({ mobile = false }: Props) {
   if (mobile) {
     return (
       <div className="no-scrollbar overflow-x-auto">
-        <div className="flex min-w-max gap-3 px-4 py-3">
+        <div style={{ display: "flex", gap: "0.5rem", padding: "0.625rem 1rem", minWidth: "max-content" }}>
           {adminLinks.map((link) => {
             const active = pathname === link.href;
-
             return (
               <Link
                 key={link.href}
                 href={link.href}
-                className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm transition ${
-                  active
-                    ? "border-[#B8FF3B] bg-[#18220C] text-[#B8FF3B]"
-                    : "border-white/10 bg-white/[0.04] text-white hover:border-white/14 hover:bg-white/[0.06]"
-                }`}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.4rem",
+                  padding: "0.375rem 0.875rem",
+                  borderRadius: "999px",
+                  border: `1px solid ${active ? "var(--accent)" : "var(--line)"}`,
+                  background: active ? "rgba(184,255,59,0.07)" : "transparent",
+                  color: active ? "var(--accent)" : "var(--fg-3)",
+                  fontSize: "13px",
+                  fontWeight: active ? 500 : 400,
+                  textDecoration: "none",
+                  whiteSpace: "nowrap",
+                  transition: "color .15s, background .15s, border-color .15s",
+                }}
               >
-                <link.icon size={15} />
+                <link.icon size={13} />
                 {link.title}
               </Link>
             );
@@ -78,59 +85,91 @@ export default function AdminSidebarNav({ mobile = false }: Props) {
   }
 
   return (
-    <div className="rounded-[30px] border border-white/10 bg-[rgba(10,14,19,0.78)] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.22)] backdrop-blur-2xl">
-      <div className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-[rgba(18,22,28,0.24)] px-4 py-2 shadow-[0_10px_24px_rgba(0,0,0,0.16)] backdrop-blur-xl">
-        <span className="h-2.5 w-2.5 rounded-full bg-[#B8FF3B] shadow-[0_0_14px_rgba(184,255,59,0.55)]" />
-        <span className="text-xs font-medium uppercase tracking-[0.18em] text-[#B8FF3B]">
-          Admin nav
+    <div
+      style={{
+        border: "1px solid var(--line)",
+        borderRadius: "20px",
+        background: "var(--bg-soft)",
+        overflow: "hidden",
+      }}
+    >
+      {/* Header */}
+      <div style={{ padding: "1.25rem 1.375rem", borderBottom: "1px solid var(--line)" }}>
+        <span
+          style={{
+            fontFamily: "var(--f-mono)",
+            fontSize: "10px",
+            letterSpacing: "0.14em",
+            textTransform: "uppercase",
+            color: "var(--fg-dim)",
+          }}
+        >
+          Admin
         </span>
+        <p
+          style={{
+            fontSize: "17px",
+            fontWeight: 600,
+            color: "var(--fg)",
+            letterSpacing: "-0.025em",
+            marginTop: "0.375rem",
+          }}
+        >
+          Navigation
+        </p>
       </div>
 
-      <p className="mt-5 text-2xl font-semibold tracking-[-0.03em] text-white">
-        Move around faster
-      </p>
-      <p className="mt-2 text-sm leading-7 text-[#94A3B8]">
-        Keep every admin page one click away instead of hunting for links in
-        different panels.
-      </p>
-
-      <div className="mt-5 space-y-3">
+      {/* Links */}
+      <div style={{ padding: "0.5rem" }}>
         {adminLinks.map((link) => {
           const active = pathname === link.href;
-
           return (
             <Link
               key={link.href}
               href={link.href}
-              className={`block rounded-[22px] border p-4 transition ${
-                active
-                  ? "border-[#B8FF3B] bg-[#18220C] shadow-[0_0_0_1px_rgba(184,255,59,0.08)]"
-                  : "border-white/10 bg-white/[0.04] hover:border-white/14 hover:bg-white/[0.06]"
-              }`}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "0.75rem",
+                padding: "0.75rem 0.875rem",
+                borderRadius: "14px",
+                background: active ? "rgba(184,255,59,0.06)" : "transparent",
+                textDecoration: "none",
+                transition: "background .15s",
+              }}
             >
-              <div className="flex items-start gap-3">
-                <div
-                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-[16px] border ${
-                    active
-                      ? "border-[#3F5D10] bg-[#22310D] text-[#B8FF3B]"
-                      : "border-white/10 bg-white/[0.05] text-white"
-                  }`}
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: "10px",
+                  border: `1px solid ${active ? "rgba(184,255,59,0.28)" : "var(--line)"}`,
+                  background: active ? "rgba(184,255,59,0.05)" : "transparent",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: active ? "var(--accent)" : "var(--fg-dim)",
+                  flexShrink: 0,
+                  transition: "border-color .15s, color .15s",
+                }}
+              >
+                <link.icon size={15} />
+              </div>
+              <div>
+                <p
+                  style={{
+                    fontSize: "14px",
+                    fontWeight: 500,
+                    color: active ? "var(--accent)" : "var(--fg)",
+                    lineHeight: 1.3,
+                    transition: "color .15s",
+                  }}
                 >
-                  <link.icon size={18} />
-                </div>
-
-                <div>
-                  <p
-                    className={`text-sm font-medium ${
-                      active ? "text-[#B8FF3B]" : "text-white"
-                    }`}
-                  >
-                    {link.title}
-                  </p>
-                  <p className="mt-1 text-xs leading-6 text-[#94A3B8]">
-                    {link.description}
-                  </p>
-                </div>
+                  {link.title}
+                </p>
+                <p style={{ fontSize: "11px", color: "var(--fg-dim)", marginTop: 2 }}>
+                  {link.description}
+                </p>
               </div>
             </Link>
           );
