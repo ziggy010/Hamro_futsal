@@ -3,21 +3,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { addDays, format } from "date-fns";
 import { useRouter } from "next/navigation";
-import { ChevronDown, ChevronUp, ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, Sparkles } from "lucide-react";
 import Button from "@/components/ui/button";
 import FadeIn from "@/components/ui/fade-in";
 import StatePanel from "@/components/ui/state-panel";
 import { HOURLY_RATE } from "@/lib/pricing";
 import { getErrorMessage } from "@/lib/utils/error-message";
 
-/* ── types ───────────────────────────────────────────────────────── */
-type SlotGroup = "Morning" | "Day" | "Evening";
-
 type Slot = {
   time24: string;
   price: number;
   status: "available" | "booked" | "blocked";
-  group: SlotGroup;
 };
 
 type BookingSlotApi = {
@@ -43,12 +39,6 @@ type SlotBlockApi = {
 };
 
 /* ── helpers ─────────────────────────────────────────────────────── */
-function slotGroupFromHour(hour: number): SlotGroup {
-  if (hour < 10) return "Morning";
-  if (hour < 17) return "Day";
-  return "Evening";
-}
-
 function hasSlotStarted(targetDate: Date, startHour: number, now = new Date()) {
   const slotStart = new Date(targetDate);
   slotStart.setHours(startHour, 0, 0, 0);
@@ -72,7 +62,6 @@ function buildSlotsFromApi(
       time24: `${String(hour).padStart(2, "0")}:00 - ${String(hour + 1).padStart(2, "0")}:00`,
       price: HOURLY_RATE,
       status: isBooked ? "booked" : isBlocked ? "blocked" : "available",
-      group: slotGroupFromHour(hour),
     });
   }
   return nextSlots;
@@ -88,11 +77,14 @@ function to12HourRange(time24: string) {
   return `${conv(start)} – ${conv(end)}`;
 }
 
-const GROUP_HOURS: Record<SlotGroup, string> = {
-  Morning: "7 AM – 10 AM",
-  Day: "10 AM – 5 PM",
-  Evening: "5 PM – 10 PM",
-};
+function to12HourStart(time24: string) {
+  const [start] = time24.split(" - ");
+  const [hourString] = start.split(":");
+  const hour = Number(hourString);
+  const displayHour = hour % 12 === 0 ? 12 : hour % 12;
+
+  return `${displayHour}:00 ${hour >= 12 ? "PM" : "AM"}`;
+}
 
 /* ── page ────────────────────────────────────────────────────────── */
 export default function BookingPage() {
@@ -100,11 +92,9 @@ export default function BookingPage() {
 
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedSlots, setSelectedSlots] = useState<string[]>([]);
-  const [openGroup, setOpenGroup] = useState<SlotGroup>("Evening");
   const [slots, setSlots] = useState<Slot[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(true);
   const [slotsError, setSlotsError] = useState("");
-  const [slotsByDate, setSlotsByDate] = useState<Record<string, Slot[]>>({});
 
   const dates = useMemo(
     () => Array.from({ length: 7 }).map((_, i) => addDays(new Date(), i)),
@@ -124,11 +114,9 @@ export default function BookingPage() {
 
   useEffect(() => {
     const load = async (resetSelection = true) => {
-      const dateKey = format(selectedDate, "yyyy-MM-dd");
       try {
         setSlotsError("");
         const fetched = await fetchSlotsForDate(selectedDate);
-        setSlotsByDate((prev) => ({ ...prev, [dateKey]: fetched }));
         setSlots(fetched);
         if (resetSelection) {
           setSelectedSlots([]);
@@ -150,34 +138,6 @@ export default function BookingPage() {
     return () => clearInterval(interval);
   }, [selectedDate]);
 
-  useEffect(() => {
-    const preload = async () => {
-      const missing = dates
-        .map((d) => format(d, "yyyy-MM-dd"))
-        .filter((k) => !slotsByDate[k]);
-      for (const dateKey of missing) {
-        try {
-          const match = dates.find((d) => format(d, "yyyy-MM-dd") === dateKey);
-          if (!match) continue;
-          const fetched = await fetchSlotsForDate(match);
-          setSlotsByDate((prev) => (prev[dateKey] ? prev : { ...prev, [dateKey]: fetched }));
-        } catch {
-          continue;
-        }
-      }
-    };
-    preload();
-  }, [dates, slotsByDate]);
-
-  const groupedSlots = useMemo(
-    () => ({
-      Morning: slots.filter((s) => s.group === "Morning"),
-      Day:     slots.filter((s) => s.group === "Day"),
-      Evening: slots.filter((s) => s.group === "Evening"),
-    }),
-    [slots],
-  );
-
   const toggleSlot = (slot: Slot) => {
     if (slot.status !== "available") return;
     setSelectedSlots((prev) => {
@@ -198,6 +158,7 @@ export default function BookingPage() {
   const sortedSelected = [...selectedSlotData].sort((a, b) => a.time24.localeCompare(b.time24));
   const total = selectedSlotData.reduce((sum, s) => sum + s.price, 0);
   const fmtDate = format(selectedDate, "EEEE, MMM d");
+  const availableCount = slots.filter((slot) => slot.status === "available").length;
 
   const handleContinue = () => {
     if (sortedSelected.length === 0) return;
@@ -219,8 +180,6 @@ export default function BookingPage() {
     });
     router.push(`/book/details?${params.toString()}`);
   };
-
-  const slotGroups: SlotGroup[] = ["Morning", "Day", "Evening"];
 
   return (
     <main className="min-h-screen pb-28">
@@ -301,7 +260,7 @@ export default function BookingPage() {
               <div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, flexWrap: "wrap", marginBottom: 16 }}>
                   <h2 style={{ fontFamily: "var(--f-sans)", fontWeight: 600, fontSize: 22, letterSpacing: "-0.025em", color: "var(--fg)", margin: 0 }}>
-                    Choose a slot
+                    Available times
                   </h2>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     <span className="chip">
@@ -311,7 +270,7 @@ export default function BookingPage() {
                       <span className="dot" style={{ background: "var(--accent)" }} />Selected
                     </span>
                     <span className="chip chip--danger">
-                      <span className="dot" style={{ background: "var(--danger)" }} />Booked
+                      <span className="dot" style={{ background: "var(--danger)" }} />Unavailable
                     </span>
                   </div>
                 </div>
@@ -342,84 +301,62 @@ export default function BookingPage() {
                   </div>
                 )}
 
-                <div className="slot-section">
-                  {slotGroups.map((group) => {
-                    const groupSlots = groupedSlots[group];
-                    const isOpen = openGroup === group;
-                    const availCount = groupSlots.filter((s) => s.status === "available").length;
+                <div className="slot-board">
+                  <div className="slot-board-head">
+                    <div>
+                      <p className="slot-board-title">Select 1 or 2 consecutive times</p>
+                      <p className="slot-board-detail">Each slot is 1 hour · NPR {HOURLY_RATE.toLocaleString()}</p>
+                    </div>
+                    {!loadingSlots && (
+                      <span className="slot-board-count">
+                        {availableCount} available
+                      </span>
+                    )}
+                  </div>
 
-                    return (
-                      <div
-                        key={group}
-                        className="slot-group"
-                        data-open={isOpen ? "true" : undefined}
-                      >
-                        <button
-                          type="button"
-                          className="slot-group-head"
-                          onClick={() => setOpenGroup(isOpen ? ("" as SlotGroup) : group)}
-                        >
-                          <div className="slot-group-head-text">
-                            <span className="slot-group-name">{group}</span>
-                            <span className="slot-group-hours">{GROUP_HOURS[group]}</span>
-                          </div>
-                          <div className="slot-group-meta">
-                            <span className="slot-group-count">
-                              {availCount} avail · {groupSlots.length} total
-                            </span>
-                            <span className="slot-group-chevron">
-                              {isOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                            </span>
-                          </div>
-                        </button>
+                  {loadingSlots ? (
+                    <div className="slot-board-state">
+                      <StatePanel
+                        variant="loading"
+                        title="Loading times"
+                        text="Checking latest availability."
+                        className="rounded-[20px] p-4 shadow-none"
+                      />
+                    </div>
+                  ) : slots.length === 0 ? (
+                    <div className="slot-board-state">
+                      <StatePanel
+                        title="No times left today"
+                        text="Choose another date to see its available times."
+                        className="rounded-[20px] p-4 shadow-none"
+                      />
+                    </div>
+                  ) : (
+                    <div className="slot-grid">
+                      {slots.map((slot) => {
+                        const isSelected = selectedSlots.includes(slot.time24);
+                        const isUnavailable = slot.status !== "available";
 
-                        {isOpen && (
-                          <div className="slot-group-body">
-                            {loadingSlots ? (
-                              <StatePanel
-                                variant="loading"
-                                title="Loading slots"
-                                text="Checking latest availability."
-                                className="rounded-[20px] p-4 shadow-none"
-                              />
-                            ) : groupSlots.length === 0 ? (
-                              <StatePanel
-                                title="No slots available"
-                                text="This time range is finished for today or fully unavailable."
-                                className="rounded-[20px] p-4 shadow-none"
-                              />
-                            ) : (
-                              groupSlots.map((slot) => {
-                                const isSel    = selectedSlots.includes(slot.time24);
-                                const isBooked = slot.status === "booked";
-                                const isBlocked = slot.status === "blocked";
-                                const isUnavail = isBooked || isBlocked;
-                                return (
-                                  <button
-                                    key={slot.time24}
-                                    type="button"
-                                    className="slot"
-                                    data-selected={isSel ? "true" : undefined}
-                                    data-booked={isUnavail ? "true" : undefined}
-                                    disabled={isUnavail}
-                                    onClick={() => toggleSlot(slot)}
-                                  >
-                                    <span className="slot-time">{to12HourRange(slot.time24)}</span>
-                                    <span className="slot-meta">
-                                      <span className="slot-price">NPR {slot.price}</span>
-                                      <span className="slot-status">
-                                        {isBooked || isBlocked ? "Booked" : isSel ? "Selected" : "Open"}
-                                      </span>
-                                    </span>
-                                  </button>
-                                );
-                              })
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                        return (
+                          <button
+                            key={slot.time24}
+                            type="button"
+                            className="slot"
+                            aria-label={`${to12HourRange(slot.time24)}, ${isUnavailable ? "unavailable" : isSelected ? "selected" : "available"}`}
+                            data-selected={isSelected ? "true" : undefined}
+                            data-booked={isUnavailable ? "true" : undefined}
+                            disabled={isUnavailable}
+                            onClick={() => toggleSlot(slot)}
+                          >
+                            <span className="slot-time">{to12HourStart(slot.time24)}</span>
+                            <span className="slot-status">
+                              {isUnavailable ? "Unavailable" : isSelected ? "Selected" : "Available"}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               </div>
             </FadeIn>
