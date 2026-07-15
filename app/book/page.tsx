@@ -208,7 +208,18 @@ export default function BookingPage() {
     if (sortedSelected.length === 0) return;
     const params = new URLSearchParams({
       date: format(selectedDate, "yyyy-MM-dd"),
-      slots: JSON.stringify(sortedSelected.map((s) => ({ time: to12HourRange(s.time24), price: s.price }))),
+      slots: JSON.stringify(
+        sortedSelected.map((slot) => {
+          const [start, end] = slot.time24.split(" - ");
+
+          return {
+            time: to12HourRange(slot.time24),
+            startHour: Number(start.split(":")[0]),
+            endHour: Number(end.split(":")[0]),
+            price: slot.price,
+          };
+        }),
+      ),
       total: String(total),
     });
     router.push(`/book/details?${params.toString()}`);

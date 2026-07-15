@@ -9,6 +9,8 @@ type RawSearchParams = Promise<{
 
 type Slot = {
   time: string;
+  startHour?: number;
+  endHour?: number;
   price: number;
 };
 

@@ -11,6 +11,8 @@ import { getErrorMessage } from "@/lib/utils/error-message";
 
 type Slot = {
   time: string;
+  startHour?: number;
+  endHour?: number;
   price: number;
 };
 
@@ -89,7 +91,7 @@ export default function BookingDetailsClient({
     const parts = safeValue.split(" ");
     if (parts.length < 2) return 0;
     const time = parts[0];
-    const period = parts[1];
+    const period = parts[1].toUpperCase();
     const [rawHour] = time.split(":");
     let hour = Number(rawHour);
     if (Number.isNaN(hour)) return 0;
@@ -100,7 +102,7 @@ export default function BookingDetailsClient({
 
   function parseSlotTimeRange(timeRange?: string) {
     if (!timeRange) return { startHour: 0, endHour: 0 };
-    const parts = timeRange.split(" - ").map((p) => p.trim());
+    const parts = timeRange.split(/\s*[\u2013\u2014-]\s*/).map((p) => p.trim());
     if (parts.length !== 2) return { startHour: 0, endHour: 0 };
     return { startHour: convertTimeToHour(parts[0]), endHour: convertTimeToHour(parts[1]) };
   }
@@ -124,7 +126,14 @@ export default function BookingDetailsClient({
 
       const formattedSlots = slots
         .map((slot) => {
-          const { startHour, endHour } = parseSlotTimeRange(slot?.time);
+          const parsedTime = parseSlotTimeRange(slot?.time);
+          const startHour = Number.isInteger(slot.startHour)
+            ? Number(slot.startHour)
+            : parsedTime.startHour;
+          const endHour = Number.isInteger(slot.endHour)
+            ? Number(slot.endHour)
+            : parsedTime.endHour;
+
           return { startHour, endHour, price: slot.price };
         })
         .filter((slot) => slot.startHour < slot.endHour);
@@ -758,7 +767,7 @@ export default function BookingDetailsClient({
                       lineHeight: 1.5,
                     }}
                   >
-                    We'll bring you back here right after sign-in.
+                    We&apos;ll bring you back here right after sign-in.
                   </p>
                 )}
 
