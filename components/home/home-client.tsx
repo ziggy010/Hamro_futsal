@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, CalendarDays, Sun, Cloud, Moon } from "lucide-react";
+import { ArrowRight, CalendarDays } from "lucide-react";
 import FadeIn from "@/components/ui/fade-in";
 
 /* ── static data ─────────────────────────────────────────────────── */
@@ -27,14 +27,6 @@ const STEPS = [
   { n: "02", label: "Reserve online",    text: "Lock the slot for your squad, or open it for other players to join. No payment yet." },
   { n: "03", label: "Show up and play",  text: "Your slot is held. Pay on arrival at the venue — card or cash, your call." },
 ];
-
-const RATES = [
-  { band: "morning", label: "Morning", time: "7 AM – 10 AM", rate: "1,200", note: "A quieter window with flexible availability for early games." },
-  { band: "day",     label: "Day",     time: "10 AM – 5 PM", rate: "1,200", note: "Balanced demand. A good window for groups and weekday sessions." },
-  { band: "evening", label: "Evening", time: "5 PM – 10 PM", rate: "1,200", note: "The strongest atmosphere and highest demand of the day." },
-] as const;
-
-const BAND_ICON = { morning: Sun, day: Cloud, evening: Moon } as const;
 
 const CAFE_POINTS = [
   "Coffee and snacks all day, same hours as the pitch.",
@@ -255,8 +247,8 @@ export default function HomeClient() {
                 Book a slot
                 <span className="btn-icon-wrap"><ArrowRight size={13} /></span>
               </Link>
-              <Link href="/pricing" className="btn btn-ghost btn-lg">
-                View pricing
+              <Link href="/games" className="btn btn-ghost btn-lg">
+                View games
               </Link>
             </div>
 
@@ -375,60 +367,8 @@ export default function HomeClient() {
         </div>
       </FadeIn>
 
-      {/* ── PRICING INLINE ─────────────────────────────────────────── */}
-      <section style={{ paddingBlock: "clamp(64px,7vw,112px)" }}>
-        <FadeIn>
-          <div
-            className="container"
-            style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 16, flexWrap: "wrap", marginBottom: 40 }}
-          >
-            <div>
-              <span className="eyebrow eyebrow--accent" style={{ marginBottom: 16, display: "inline-flex" }}>
-                <span className="num">02</span>
-                Pricing at a glance
-              </span>
-              <h2 style={{ fontFamily: "var(--f-sans)", fontWeight: 600, letterSpacing: "-0.04em", lineHeight: 1, fontSize: "clamp(38px,5.4vw,72px)", margin: "16px 0 0" }}>
-                One flat rate.<br />All day.
-              </h2>
-            </div>
-            <Link href="/pricing" className="btn-text">
-              See full pricing <ArrowRight size={14} />
-            </Link>
-          </div>
-        </FadeIn>
-
-        <div className="container">
-          <div className="price-bands-grid">
-            {RATES.map((r, i) => {
-              const Icon = BAND_ICON[r.band];
-              return (
-                <FadeIn key={r.band} delay={i * 0.12} className={`price-band-card ${r.band}`}>
-                  <div className="price-band-top">
-                    <span className="price-band-n">{String(i + 1).padStart(2, "0")}</span>
-                  </div>
-                  <div className="price-band-icon"><Icon size={20} /></div>
-                  <p className="price-band-name">{r.label}</p>
-                  <p className="price-band-hours">{r.time}</p>
-                  <p className="price-band-note">{r.note}</p>
-                  <div className="price-band-bottom">
-                    <div className="price-band-price">
-                      <span className="price-band-currency">NPR</span>
-                      <span className="price-band-amount">{r.rate}</span>
-                      <span className="price-band-unit">/hr</span>
-                    </div>
-                    <Link href="/book" className="btn btn-ghost btn-sm">
-                      Book <span className="btn-icon-wrap"><ArrowRight size={11} /></span>
-                    </Link>
-                  </div>
-                </FadeIn>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
       {/* ── CAFÉ ───────────────────────────────────────────────────── */}
-      <section style={{ paddingBottom: "clamp(64px,7vw,112px)" }}>
+      <section style={{ paddingBlock: "clamp(64px,7vw,112px)" }}>
         <div className="container">
           <div className="cafe-grid">
             <FadeIn>

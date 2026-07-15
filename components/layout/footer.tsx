@@ -4,7 +4,6 @@ import Image from "next/image";
 
 const quickLinks = [
   { label: "Home", href: "/" },
-  { label: "Pricing", href: "/pricing" },
   { label: "Book", href: "/book" },
   { label: "Games", href: "/games" },
   { label: "Contact", href: "/contact" },
@@ -104,7 +103,7 @@ export default function Footer() {
                   Premium booking
                 </p>
                 <p className="mt-3 text-[15px] leading-7 text-[#94A3B8]">
-                  Fast booking, clean pricing, and a better matchday feel.
+                  Fast booking, clear availability, and a better matchday feel.
                 </p>
               </div>
             </div>

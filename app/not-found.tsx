@@ -67,12 +67,12 @@ export default function NotFound() {
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Link
-                    href="/pricing"
+                    href="/games"
                     className="rounded-[24px] border border-white/10 bg-white/[0.04] p-5 transition hover:border-white/14 hover:bg-white/[0.06]"
                   >
                     <Compass size={20} className="text-[#B8FF3B]" />
                     <p className="mt-4 text-base font-medium text-white">
-                      View pricing
+                      View games
                     </p>
                     <p className="mt-2 text-sm leading-7 text-[#94A3B8]">
                       Check rates before booking.
