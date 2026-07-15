@@ -106,7 +106,7 @@ export default async function BookingSuccessPage({
               maxWidth: "18ch",
             }}
           >
-            {gameType === "private" ? "Your slot is locked." : "Your open game is live."}
+            {gameType === "private" ? "Your slot is booked." : "Your open game is live."}
           </h1>
           <p
             style={{
