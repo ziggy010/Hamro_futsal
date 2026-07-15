@@ -7,6 +7,7 @@ import { ChevronDown, ChevronUp, ArrowRight, Sparkles } from "lucide-react";
 import Button from "@/components/ui/button";
 import FadeIn from "@/components/ui/fade-in";
 import StatePanel from "@/components/ui/state-panel";
+import { HOURLY_RATE } from "@/lib/pricing";
 import { getErrorMessage } from "@/lib/utils/error-message";
 
 /* ── types ───────────────────────────────────────────────────────── */
@@ -48,12 +49,6 @@ function slotGroupFromHour(hour: number): SlotGroup {
   return "Evening";
 }
 
-function priceForHour(hour: number) {
-  if (hour < 10) return 800;
-  if (hour < 17) return 1000;
-  return 1200;
-}
-
 function hasSlotStarted(targetDate: Date, startHour: number, now = new Date()) {
   const slotStart = new Date(targetDate);
   slotStart.setHours(startHour, 0, 0, 0);
@@ -75,7 +70,7 @@ function buildSlotsFromApi(
     );
     nextSlots.push({
       time24: `${String(hour).padStart(2, "0")}:00 - ${String(hour + 1).padStart(2, "0")}:00`,
-      price: priceForHour(hour),
+      price: HOURLY_RATE,
       status: isBooked ? "booked" : isBlocked ? "blocked" : "available",
       group: slotGroupFromHour(hour),
     });

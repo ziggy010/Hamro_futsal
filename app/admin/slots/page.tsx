@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { addDays, format } from "date-fns";
 import { useRouter } from "next/navigation";
 import StatePanel from "@/components/ui/state-panel";
+import { HOURLY_RATE } from "@/lib/pricing";
 import { getErrorMessage } from "@/lib/utils/error-message";
 
 type BookingSlotApi = {
@@ -48,12 +49,6 @@ function hourTo12(hour: number) {
 
 function slotLabel(startHour: number, endHour: number) {
   return `${hourTo12(startHour)} – ${hourTo12(endHour)}`;
-}
-
-function priceForHour(hour: number) {
-  if (hour < 10) return 800;
-  if (hour < 17) return 1000;
-  return 1200;
 }
 
 function slotStatusColor(status: SlotRow["status"]): string {
@@ -125,7 +120,7 @@ export default function AdminSlotsPage() {
             time: slotLabel(hour, hour + 1),
             startHour: hour,
             endHour: hour + 1,
-            price: priceForHour(hour),
+            price: HOURLY_RATE,
             status: "blocked",
             customer: blockedSlot.reason,
             slotBlockId: blockedSlot.id,
@@ -135,7 +130,7 @@ export default function AdminSlotsPage() {
             time: slotLabel(hour, hour + 1),
             startHour: hour,
             endHour: hour + 1,
-            price: priceForHour(hour),
+            price: HOURLY_RATE,
             status: "available",
           });
         }

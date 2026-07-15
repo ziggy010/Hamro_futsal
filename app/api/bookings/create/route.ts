@@ -3,6 +3,7 @@ import { prisma } from "../../../../src/lib/prisma";
 import { Prisma as PrismaClient } from "@prisma/client";
 import { auth } from "../../../../auth";
 import { getOpenGameCutoffTime } from "../../../../lib/open-game-cutoff";
+import { HOURLY_RATE } from "../../../../lib/pricing";
 
 type IncomingSlot = {
   startHour: number;
@@ -25,12 +26,6 @@ function startOfDay(date: Date) {
   const d = new Date(date);
   d.setHours(0, 0, 0, 0);
   return d;
-}
-
-function priceForHour(hour: number) {
-  if (hour < 10) return 800;
-  if (hour < 17) return 1000;
-  return 1200;
 }
 
 function normalizeSlots(slots: IncomingSlot[]) {
@@ -58,7 +53,7 @@ function normalizeSlots(slots: IncomingSlot[]) {
       throw new Error("INVALID_SLOT_SELECTION");
     }
 
-    const expectedPrice = priceForHour(slot.startHour);
+    const expectedPrice = HOURLY_RATE;
 
     if (slot.price !== expectedPrice) {
       throw new Error("INVALID_SLOT_PRICE");
@@ -102,7 +97,7 @@ export async function POST(req: Request) {
     const normalizedSlots = normalizeSlots(slots || []);
     const safePlayersCount = Number(playersCount);
     const expectedTotal = normalizedSlots.reduce(
-      (sum, slot) => sum + priceForHour(slot.startHour),
+      (sum) => sum + HOURLY_RATE,
       0,
     );
 
@@ -242,7 +237,7 @@ export async function POST(req: Request) {
                 slotDate: normalizedDate,
                 startHour: slot.startHour,
                 endHour: slot.endHour,
-                price: priceForHour(slot.startHour),
+                price: HOURLY_RATE,
               })),
             },
             ...(bookingType === "OPEN"

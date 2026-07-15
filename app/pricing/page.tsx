@@ -11,37 +11,34 @@ const BANDS = [
     n: "01",
     label: "Morning",
     hours: "7 AM – 10 AM",
-    rate: "800",
-    note: "Quieter session, the lowest rate, and the most flexible availability.",
+    rate: "1,200",
+    note: "A quieter window with flexible availability for early games.",
     color: "#F5C76A",
     band: "morning",
     flex: 3,
     labelLeft: 10,
-    peak: false,
   },
   {
     n: "02",
     label: "Day",
     hours: "10 AM – 5 PM",
-    rate: "1,000",
+    rate: "1,200",
     note: "Balanced demand. A good window for groups and weekday sessions.",
     color: "#7DD3FC",
     band: "day",
     flex: 7,
     labelLeft: 43,
-    peak: false,
   },
   {
     n: "03",
     label: "Evening",
     hours: "5 PM – 10 PM",
     rate: "1,200",
-    note: "Prime hours. Strongest atmosphere, highest demand, every night.",
+    note: "The strongest atmosphere and highest demand of the day.",
     color: "#B8FF3B",
     band: "evening",
     flex: 5,
     labelLeft: 83,
-    peak: true,
   },
 ] as const;
 
@@ -50,7 +47,7 @@ const BAND_ICON = { morning: Sun, day: Cloud, evening: Moon } as const;
 const INCLUDES = [
   { title: "Full-size pitch",       sub: "Floodlit through to 10 PM every day." },
   { title: "Café access",           sub: "Indoors, open the same hours as the pitch." },
-  { title: "1 or 2 hour blocks",    sub: "Continuous slots at the same band rate." },
+  { title: "1 or 2 hour blocks",    sub: "Continuous slots at the same flat rate." },
   { title: "Open game option",      sub: "Let other signed-in players join your slot." },
 ] as const;
 
@@ -58,7 +55,7 @@ const STEPS = [
   {
     n: "01",
     label: "Pick your window",
-    text: "Morning, Day, or Evening — each has a flat hourly rate. No hidden fees.",
+    text: "Morning, day, or evening, every slot is NPR 1,200 per hour.",
   },
   {
     n: "02",
@@ -75,7 +72,7 @@ const STEPS = [
 const FAQS = [
   {
     q: "What decides the price?",
-    a: "Only the time of day. Morning is the lowest, daytime is mid-range, and evening is peak. The rate is the same every day of the week — no weekend surcharges.",
+    a: "Every slot is NPR 1,200 per hour, regardless of the time or day. There are no weekend surcharges or hidden fees.",
   },
   {
     q: "Do I pay when I book?",
@@ -83,7 +80,7 @@ const FAQS = [
   },
   {
     q: "Can I book for two hours?",
-    a: "Yes. In the booking flow you can choose one or two continuous hours at the same band rate.",
+    a: "Yes. You can choose one or two continuous hours. A two-hour booking costs NPR 2,400.",
   },
   {
     q: "Can I change or cancel a booking?",
@@ -114,7 +111,7 @@ export default function PricingPage() {
               maxWidth: "14ch",
             }}
           >
-            Three windows.<br />One flat rate each.
+            One clear rate.<br />All day.
           </h1>
 
           <p
@@ -126,8 +123,8 @@ export default function PricingPage() {
               color: "var(--fg-3)",
             }}
           >
-            Price changes only by time of day. Pick the window, understand the
-            rate, book in under a minute.
+            Every available slot is NPR 1,200 per hour. Pick your time and book
+            in under a minute.
           </p>
 
           <div className="mt-9 flex flex-wrap gap-3">
@@ -158,7 +155,7 @@ export default function PricingPage() {
               color: "var(--fg-dim)",
             }}
           >
-            <span>Time-based only</span>
+            <span>NPR 1,200 per hour</span>
             <span>1 or 2 hours</span>
             <span>Pay at venue</span>
             <span>Same rate every day</span>
@@ -169,7 +166,7 @@ export default function PricingPage() {
       {/* ── DAY TIMELINE ─────────────────────────────────────── */}
       <section className="container pb-4">
         <FadeIn delay={0.08}>
-          <div className="day-timeline" aria-label="Pricing bands across the operating day">
+          <div className="day-timeline" aria-label="Booking windows across the operating day">
 
             {/* Band name labels above the bar */}
             <div className="day-timeline-labels" aria-hidden="true">
@@ -179,7 +176,7 @@ export default function PricingPage() {
                   className="day-timeline-seg-label"
                   style={{ left: `${b.labelLeft}%`, color: b.color }}
                 >
-                  {b.label}{b.peak ? " · Peak" : ""}
+                  {b.label}
                 </span>
               ))}
             </div>
@@ -221,7 +218,6 @@ export default function PricingPage() {
               <FadeIn key={band.label} delay={i * 0.12} className={`price-band-card ${band.band}`}>
                 <div className="price-band-top">
                   <span className="price-band-n">{band.n}</span>
-                  {band.peak && <span className="price-band-peak">PEAK</span>}
                 </div>
                 <div className="price-band-icon"><Icon size={20} /></div>
                 <p className="price-band-name">{band.label}</p>
@@ -235,7 +231,7 @@ export default function PricingPage() {
                   </div>
                   <Link
                     href="/book"
-                    className={`btn btn-lg ${band.peak ? "btn-primary" : "btn-ghost"}`}
+                    className="btn btn-ghost btn-lg"
                   >
                     Book
                     <span className="btn-icon-wrap"><ArrowRight size={13} /></span>
@@ -280,7 +276,7 @@ export default function PricingPage() {
                 color: "var(--fg-dim)",
               }}
             >
-              All rates · No hidden fees
+              Every booking · No hidden fees
             </span>
           </div>
 

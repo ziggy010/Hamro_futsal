@@ -23,15 +23,15 @@ const QUICK_SLOTS = [
 ];
 
 const STEPS = [
-  { n: "01", label: "Pick your slot",    text: "Choose a date and time. Morning, Day, or Evening — each has a flat hourly rate." },
+  { n: "01", label: "Pick your slot",    text: "Choose any available time. Every slot is NPR 1,200 per hour." },
   { n: "02", label: "Reserve online",    text: "Lock the slot for your squad, or open it for other players to join. No payment yet." },
   { n: "03", label: "Show up and play",  text: "Your slot is held. Pay on arrival at the venue — card or cash, your call." },
 ];
 
 const RATES = [
-  { band: "morning", label: "Morning", time: "7 AM – 10 AM", rate: "800",   note: "Quieter session, the lowest rate, and the most flexible availability.", peak: false },
-  { band: "day",     label: "Day",     time: "10 AM – 5 PM", rate: "1,000", note: "Balanced demand. A good window for groups and weekday sessions.",        peak: false },
-  { band: "evening", label: "Evening", time: "5 PM – 10 PM", rate: "1,200", note: "Prime hours. Strongest atmosphere, highest demand, every night.",        peak: true  },
+  { band: "morning", label: "Morning", time: "7 AM – 10 AM", rate: "1,200", note: "A quieter window with flexible availability for early games." },
+  { band: "day",     label: "Day",     time: "10 AM – 5 PM", rate: "1,200", note: "Balanced demand. A good window for groups and weekday sessions." },
+  { band: "evening", label: "Evening", time: "5 PM – 10 PM", rate: "1,200", note: "The strongest atmosphere and highest demand of the day." },
 ] as const;
 
 const BAND_ICON = { morning: Sun, day: Cloud, evening: Moon } as const;
@@ -48,7 +48,7 @@ const MARQUEE_ITEMS = [
   <><span className="star">★</span> Daily 7 AM — 10 PM</>,
   <>Open games every evening</>,
   <><span className="star">★</span> Floodlit pitch — clean turf</>,
-  <>Pay at venue · NPR 800 / hr</>,
+  <>Pay at venue · NPR 1,200 / hr</>,
 ];
 
 /* ── count-up hook ───────────────────────────────────────────────── */
@@ -173,7 +173,7 @@ function AerialMonitor() {
         <div className="hero-aerial-quickbook">
           <div className="hero-aerial-qb-head">
             <span><b>Tonight</b> · 5 PM – 10 PM</span>
-            <span className="hero-aerial-qb-peak">PEAK</span>
+            <span className="hero-aerial-qb-peak">NPR 1,200 / HR</span>
           </div>
           <div className="hero-aerial-qb-slots">
             {QUICK_SLOTS.map((s) => (
@@ -270,8 +270,8 @@ export default function HomeClient() {
                 <dd><b>{bookingsToday}</b></dd>
               </div>
               <div className="hero-stat">
-                <dt>From / hr</dt>
-                <dd><span className="npr">NPR</span><b>800</b></dd>
+                <dt>Rate / hr</dt>
+                <dd><span className="npr">NPR</span><b>1,200</b></dd>
               </div>
             </dl>
           </div>
@@ -299,7 +299,7 @@ export default function HomeClient() {
             {[
               { value: "7 AM",   label: "Opens daily" },
               { value: "10 PM",  label: "Last slot" },
-              { value: <>800<span style={{ fontSize: "0.45em", color: "var(--fg-dim)", marginLeft: 6, fontWeight: 500, letterSpacing: 0 }}>NPR</span></>, label: "From per hour" },
+              { value: <>1,200<span style={{ fontSize: "0.45em", color: "var(--fg-dim)", marginLeft: 6, fontWeight: 500, letterSpacing: 0 }}>NPR</span></>, label: "Flat rate per hour" },
               { value: "1–2 hr", label: "Booking duration" },
             ].map((f, i) => (
               <FadeIn key={i} delay={0.06 * i}>
@@ -388,7 +388,7 @@ export default function HomeClient() {
                 Pricing at a glance
               </span>
               <h2 style={{ fontFamily: "var(--f-sans)", fontWeight: 600, letterSpacing: "-0.04em", lineHeight: 1, fontSize: "clamp(38px,5.4vw,72px)", margin: "16px 0 0" }}>
-                One flat rate<br />by time of day.
+                One flat rate.<br />All day.
               </h2>
             </div>
             <Link href="/pricing" className="btn-text">
@@ -405,7 +405,6 @@ export default function HomeClient() {
                 <FadeIn key={r.band} delay={i * 0.12} className={`price-band-card ${r.band}`}>
                   <div className="price-band-top">
                     <span className="price-band-n">{String(i + 1).padStart(2, "0")}</span>
-                    {r.peak && <span className="price-band-peak">PEAK</span>}
                   </div>
                   <div className="price-band-icon"><Icon size={20} /></div>
                   <p className="price-band-name">{r.label}</p>
@@ -417,7 +416,7 @@ export default function HomeClient() {
                       <span className="price-band-amount">{r.rate}</span>
                       <span className="price-band-unit">/hr</span>
                     </div>
-                    <Link href="/book" className={`btn ${r.peak ? "btn-primary" : "btn-ghost"} btn-sm`}>
+                    <Link href="/book" className="btn btn-ghost btn-sm">
                       Book <span className="btn-icon-wrap"><ArrowRight size={11} /></span>
                     </Link>
                   </div>
