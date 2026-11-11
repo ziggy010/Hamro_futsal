@@ -12,6 +12,8 @@ type RawSearchParams = Promise<{
 type Slot = {
   time: string;
   price: number;
+  activity: "FUTSAL" | "PICKLEBALL";
+  courtNumber: number;
 };
 
 function first(value: string | string[] | undefined) {
@@ -64,11 +66,15 @@ export default async function BookingSuccessPage({
   const total = booking.totalPrice;
 
   const slots: Slot[] = booking.slots.map(
-    (slot: { startHour: number; endHour: number; price: number }) => ({
+    (slot: { startHour: number; endHour: number; price: number; activity: "FUTSAL" | "PICKLEBALL"; courtNumber: number }) => ({
       time: `${hourTo12(slot.startHour)} - ${hourTo12(slot.endHour)}`,
       price: slot.price,
+      activity: slot.activity,
+      courtNumber: slot.courtNumber,
     }),
   );
+  const activity = slots[0]?.activity || "FUTSAL";
+  const courtNumber = slots[0]?.courtNumber || 1;
 
   function statusLabel(status: string) {
     if (status === "PRIVATE_CONFIRMED") return "Confirmed";
@@ -247,6 +253,9 @@ export default async function BookingSuccessPage({
                     <p style={{ fontSize: "18px", fontWeight: 600, letterSpacing: "-0.03em", color: "var(--fg)", marginTop: 4 }}>
                       {format(parsedDate, "EEEE, MMM d")}
                     </p>
+                    <p style={{ fontSize: "13px", color: "var(--accent)", marginTop: 3 }}>
+                      {activity === "PICKLEBALL" ? `Pickleball · Court ${courtNumber}` : "Futsal"}
+                    </p>
                   </div>
                 </div>
 
@@ -301,7 +310,7 @@ export default async function BookingSuccessPage({
 
               {/* Actions */}
               <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem" }}>
-                <Link href="/book" className="btn btn-primary btn-lg">
+                <Link href={activity === "PICKLEBALL" ? "/book/pickleball" : "/book"} className="btn btn-primary btn-lg">
                   Book another slot
                   <span className="btn-icon-wrap"><ArrowRight size={13} /></span>
                 </Link>

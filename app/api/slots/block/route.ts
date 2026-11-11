@@ -12,6 +12,8 @@ type BlockSlotBody = {
   endHour: number;
   reason?: "MAINTENANCE" | "ADMIN_BLOCK" | "PRIVATE_EVENT" | "OTHER";
   note?: string;
+  activity?: "FUTSAL" | "PICKLEBALL";
+  courtNumber?: number;
 };
 
 function startOfDay(date: Date) {
@@ -30,7 +32,19 @@ export async function POST(req: Request) {
       endHour,
       reason = "ADMIN_BLOCK",
       note,
+      activity = "FUTSAL",
+      courtNumber = 1,
     } = body;
+
+    if (
+      !["FUTSAL", "PICKLEBALL"].includes(activity) ||
+      !Number.isInteger(courtNumber) ||
+      courtNumber < 1 ||
+      (activity === "FUTSAL" && courtNumber !== 1) ||
+      (activity === "PICKLEBALL" && courtNumber > 2)
+    ) {
+      return NextResponse.json({ error: "Invalid activity or court" }, { status: 400 });
+    }
 
     if (!blockDate || startHour === undefined || endHour === undefined) {
       return NextResponse.json(
@@ -53,6 +67,8 @@ export async function POST(req: Request) {
         slotDate: normalizedDate,
         startHour: { lt: endHour },
         endHour: { gt: startHour },
+        activity,
+        courtNumber,
         booking: {
           status: {
             in: ["PRIVATE_CONFIRMED", "OPEN_PENDING_FILL", "OPEN_CONFIRMED"],
@@ -73,6 +89,8 @@ export async function POST(req: Request) {
         blockDate: normalizedDate,
         startHour: { lt: endHour },
         endHour: { gt: startHour },
+        activity,
+        courtNumber,
       },
     });
 
@@ -90,6 +108,8 @@ export async function POST(req: Request) {
         endHour,
         reason,
         note: note || null,
+        activity,
+        courtNumber,
       },
     });
 

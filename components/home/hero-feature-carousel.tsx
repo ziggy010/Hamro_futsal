@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils/cn";
 const slides = [
   {
     eyebrow: "Available Slots Today",
-    title: "NPR 1,200/hr",
+    title: "From NPR 800/hr",
     text: "One flat rate all day",
     icon: WalletCards,
   },

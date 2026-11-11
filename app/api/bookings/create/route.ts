@@ -3,7 +3,7 @@ import { prisma } from "../../../../src/lib/prisma";
 import { Prisma as PrismaClient } from "@prisma/client";
 import { auth } from "../../../../auth";
 import { getOpenGameCutoffTime } from "../../../../lib/open-game-cutoff";
-import { HOURLY_RATE } from "../../../../lib/pricing";
+import { getHourlyRate, type ActivityType } from "../../../../lib/pricing";
 import { OPEN_GAMES_ENABLED } from "../../../../lib/features";
 
 type IncomingSlot = {
@@ -21,6 +21,8 @@ type BookingBody = {
   playersCount: number;
   totalPrice: number;
   slots: IncomingSlot[];
+  activity?: ActivityType;
+  courtNumber?: number;
 };
 
 function startOfDay(date: Date) {
@@ -29,7 +31,7 @@ function startOfDay(date: Date) {
   return d;
 }
 
-function normalizeSlots(slots: IncomingSlot[]) {
+function normalizeSlots(slots: IncomingSlot[], hourlyRate: number) {
   const normalized = slots
     .map((slot) => ({
       startHour: Number(slot.startHour),
@@ -54,9 +56,7 @@ function normalizeSlots(slots: IncomingSlot[]) {
       throw new Error("INVALID_SLOT_SELECTION");
     }
 
-    const expectedPrice = HOURLY_RATE;
-
-    if (slot.price !== expectedPrice) {
+    if (slot.price !== hourlyRate) {
       throw new Error("INVALID_SLOT_PRICE");
     }
   }
@@ -91,8 +91,14 @@ export async function POST(req: Request) {
     const sessionEmail = session.user.email;
     const body = (await req.json()) as BookingBody;
 
-    const { name, phone, bookingDate, bookingType, playersCount, slots } =
-      body;
+    const { name, phone, bookingDate, bookingType, playersCount, slots } = body;
+    const activity: ActivityType = body.activity === "PICKLEBALL" ? "PICKLEBALL" : "FUTSAL";
+    const courtNumber = activity === "PICKLEBALL" ? Number(body.courtNumber) : 1;
+    const hourlyRate = getHourlyRate(activity);
+
+    if (!Number.isInteger(courtNumber) || courtNumber < 1 || courtNumber > 2) {
+      return NextResponse.json({ error: "Please choose a valid court" }, { status: 400 });
+    }
 
     if (!OPEN_GAMES_ENABLED && bookingType === "OPEN") {
       return NextResponse.json(
@@ -103,10 +109,12 @@ export async function POST(req: Request) {
 
     const safeName = name?.trim() || "";
     const safePhone = phone?.trim() || "";
-    const normalizedSlots = normalizeSlots(slots || []);
-    const safePlayersCount = bookingType === "PRIVATE" ? 10 : Number(playersCount);
+    const normalizedSlots = normalizeSlots(slots || [], hourlyRate);
+    const safePlayersCount = bookingType === "PRIVATE"
+      ? activity === "PICKLEBALL" ? 4 : 10
+      : Number(playersCount);
     const expectedTotal = normalizedSlots.reduce(
-      (sum) => sum + HOURLY_RATE,
+      (sum) => sum + hourlyRate,
       0,
     );
 
@@ -186,6 +194,8 @@ export async function POST(req: Request) {
         const blockedSlots = await tx.slotBlock.findMany({
           where: {
             blockDate: normalizedDate,
+            activity,
+            courtNumber,
           },
         });
 
@@ -205,6 +215,8 @@ export async function POST(req: Request) {
         const existingSlots = await tx.bookingSlot.findMany({
           where: {
             slotDate: normalizedDate,
+            activity,
+            courtNumber,
             booking: {
               status: {
                 in: [
@@ -246,7 +258,9 @@ export async function POST(req: Request) {
                 slotDate: normalizedDate,
                 startHour: slot.startHour,
                 endHour: slot.endHour,
-                price: HOURLY_RATE,
+                price: hourlyRate,
+                activity,
+                courtNumber,
               })),
             },
             ...(bookingType === "OPEN"

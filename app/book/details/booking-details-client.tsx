@@ -24,6 +24,8 @@ type Props = {
     name: string;
     phone: string;
   };
+  activity: "FUTSAL" | "PICKLEBALL";
+  courtNumber: number;
 };
 
 const BOOKING_PLAYERS = 10;
@@ -72,6 +74,8 @@ export default function BookingDetailsClient({
   slots,
   total,
   initialUser,
+  activity,
+  courtNumber,
 }: Props) {
   const router = useRouter();
   const { data: session, status } = useSession();
@@ -154,6 +158,8 @@ export default function BookingDetailsClient({
           playersCount: BOOKING_PLAYERS,
           totalPrice: total,
           slots: formattedSlots,
+          activity,
+          courtNumber,
         }),
       });
 
@@ -180,7 +186,7 @@ export default function BookingDetailsClient({
       if (!bookingId) { setSubmitError("Booking was created, but confirmation details were missing."); return; }
 
       setIsRedirecting(true);
-      router.replace(`/book/success?bookingId=${encodeURIComponent(bookingId)}`);
+      router.replace(`/book/success?bookingId=${encodeURIComponent(bookingId)}&activity=${activity}`);
     } catch (error: unknown) {
       setSubmitError(getErrorMessage(error, "Something went wrong while creating the booking."));
     } finally {
@@ -203,7 +209,7 @@ export default function BookingDetailsClient({
       {/* ── PAGE HEADER ──────────────────────────────────────────────── */}
       <section className="container pt-12 pb-10 md:pt-20 md:pb-14">
         <FadeIn>
-          <span className="eyebrow">Step 02 · Details</span>
+          <span className="eyebrow">Step 02 · {activity === "PICKLEBALL" ? `Pickleball Court ${courtNumber}` : "Futsal"}</span>
           <h1
             style={{
               fontFamily: "var(--f-sans)",
@@ -435,6 +441,9 @@ export default function BookingDetailsClient({
                     ? format(parsedDate, "EEEE, MMM d")
                     : "No date selected"}
                 </p>
+                <p style={{ marginTop: "0.5rem", fontSize: "13px", color: "var(--accent)" }}>
+                  {activity === "PICKLEBALL" ? `Pickleball · Court ${courtNumber}` : "Futsal"}
+                </p>
               </div>
 
               {/* Slots */}
@@ -601,7 +610,7 @@ export default function BookingDetailsClient({
                 )}
 
                 <Link
-                  href="/book"
+                  href={activity === "PICKLEBALL" ? "/book/pickleball" : "/book"}
                   style={{
                     display: "flex",
                     alignItems: "center",

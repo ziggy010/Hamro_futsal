@@ -14,6 +14,7 @@ import { useSession, signOut } from "next-auth/react";
 const links = [
   { label: "Home", href: "/" },
   { label: "Book Futsal", href: "/book" },
+  { label: "Book Pickleball", href: "/book/pickleball" },
   { label: "Contact", href: "/contact" },
 ];
 
@@ -41,6 +42,10 @@ export default function Navbar() {
 
   const isActive = (href: string) => {
     if (href === "/") return pathname === "/";
+    const isBookingFollowUp = pathname.startsWith("/book/details") || pathname.startsWith("/book/success");
+    const isPickleballFlow = searchParams.get("activity") === "PICKLEBALL";
+    if (href === "/book") return pathname === "/book" || (isBookingFollowUp && !isPickleballFlow);
+    if (href === "/book/pickleball") return pathname.startsWith("/book/pickleball") || (isBookingFollowUp && isPickleballFlow);
     return pathname === href || pathname.startsWith(`${href}/`);
   };
 

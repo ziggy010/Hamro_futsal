@@ -24,7 +24,7 @@ const adminLinks = [
   },
   {
     title: "Slots",
-    description: "Availability and blocking",
+    description: "Availability and venue bookings",
     href: "/admin/slots",
     icon: ShieldCheck,
   },

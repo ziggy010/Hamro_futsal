@@ -60,37 +60,58 @@ export async function POST(req: Request) {
       );
     }
 
+    let venueCreatedUser: { id: string } | null = null;
+
     if (safePhone) {
       const existingUserByPhone = await prisma.user.findUnique({
         where: { phone: safePhone },
       });
 
       if (existingUserByPhone) {
-        return NextResponse.json(
-          { error: "Phone already in use" },
-          { status: 409 },
-        );
+        if (existingUserByPhone.email || existingUserByPhone.passwordHash) {
+          return NextResponse.json(
+            { error: "Phone already in use" },
+            { status: 409 },
+          );
+        }
+        venueCreatedUser = existingUserByPhone;
       }
     }
 
     const passwordHash = await hash(safePassword, 10);
 
-    const user = await prisma.user.create({
-      data: {
-        name: safeName,
-        email: safeEmail,
-        phone: safePhone,
-        passwordHash,
-        role: "USER",
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        phone: true,
-        role: true,
-      },
-    });
+    const user = venueCreatedUser
+      ? await prisma.user.update({
+          where: { id: venueCreatedUser.id },
+          data: {
+            name: safeName,
+            email: safeEmail,
+            passwordHash,
+          },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+            role: true,
+          },
+        })
+      : await prisma.user.create({
+          data: {
+            name: safeName,
+            email: safeEmail,
+            phone: safePhone,
+            passwordHash,
+            role: "USER",
+          },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+            role: true,
+          },
+        });
 
     return NextResponse.json(
       {

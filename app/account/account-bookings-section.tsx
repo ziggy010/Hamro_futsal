@@ -11,6 +11,8 @@ type Slot = {
   startHour: number;
   endHour: number;
   price: number;
+  activity: "FUTSAL" | "PICKLEBALL";
+  courtNumber: number;
 };
 
 type Booking = {
@@ -127,6 +129,11 @@ function BookingRow({ booking, past, onCancel, cancelling }: {
       {/* Time — large */}
       <p style={{ fontSize: "clamp(20px,2.2vw,26px)", fontWeight: 600, letterSpacing: "-0.04em", color: "var(--fg)", fontFamily: "var(--f-sans)" }}>
         {formatSlotRange(booking.slots)}
+      </p>
+      <p style={{ marginTop: "0.3rem", fontSize: "12px", color: "var(--accent)" }}>
+        {booking.slots[0]?.activity === "PICKLEBALL"
+          ? `Pickleball · Court ${booking.slots[0].courtNumber}`
+          : "Futsal"}
       </p>
 
       {/* Meta row */}

@@ -32,6 +32,9 @@ export default async function BookingDetailsPage({
 
   const date = firstValue(params.date);
   const slotsRaw = firstValue(params.slots);
+  const activity = firstValue(params.activity) === "PICKLEBALL" ? "PICKLEBALL" : "FUTSAL";
+  const requestedCourt = Number(firstValue(params.court));
+  const courtNumber = activity === "PICKLEBALL" && requestedCourt === 2 ? 2 : 1;
 
   let slots: Slot[] = [];
   try {
@@ -54,7 +57,7 @@ export default async function BookingDetailsPage({
     );
 
   if (!hasValidDate || !hasValidSlots) {
-    redirect("/book");
+    redirect(activity === "PICKLEBALL" ? "/book/pickleball" : "/book");
   }
 
   const total = slots.reduce((sum, slot) => sum + slot.price, 0);
@@ -83,6 +86,8 @@ export default async function BookingDetailsPage({
       slots={slots}
       total={total}
       initialUser={initialUser}
+      activity={activity}
+      courtNumber={courtNumber}
     />
   );
 }

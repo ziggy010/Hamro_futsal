@@ -9,6 +9,16 @@ function startOfDay(date: Date) {
   return d;
 }
 
+function getActivity(value: string | null) {
+  return value === "PICKLEBALL" ? "PICKLEBALL" : "FUTSAL";
+}
+
+function getCourtNumber(value: string | null, activity: "FUTSAL" | "PICKLEBALL") {
+  const court = Number(value);
+  if (activity === "PICKLEBALL" && (court === 1 || court === 2)) return court;
+  return 1;
+}
+
 export async function GET(req: Request) {
   try {
     const session = await auth();
@@ -16,12 +26,16 @@ export async function GET(req: Request) {
       !!session?.user && (session.user as { role?: string }).role === "admin";
     const { searchParams } = new URL(req.url);
     const dateParam = searchParams.get("date");
+    const activity = getActivity(searchParams.get("activity"));
+    const courtNumber = getCourtNumber(searchParams.get("court"), activity);
 
     const targetDate = startOfDay(dateParam ? new Date(dateParam) : new Date());
 
     const bookingSlots = await prisma.bookingSlot.findMany({
       where: {
         slotDate: targetDate,
+        activity,
+        courtNumber,
         booking: {
           status: {
             in: ["PRIVATE_CONFIRMED", "OPEN_PENDING_FILL", "OPEN_CONFIRMED"],
@@ -45,6 +59,8 @@ export async function GET(req: Request) {
     const blockedSlots = await prisma.slotBlock.findMany({
       where: {
         blockDate: targetDate,
+        activity,
+        courtNumber,
       },
       orderBy: {
         startHour: "asc",
@@ -56,6 +72,8 @@ export async function GET(req: Request) {
       date: targetDate,
       bookingSlots,
       blockedSlots,
+      activity,
+      courtNumber,
     });
   } catch (error: unknown) {
     console.error("GET_SLOTS_ERROR", error);

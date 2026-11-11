@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useEffectEvent, useMemo, useState } from "react";
 import { addDays, format } from "date-fns";
-import { useRouter } from "next/navigation";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { ArrowRight, Sparkles, Trophy } from "lucide-react";
 import Button from "@/components/ui/button";
 import FadeIn from "@/components/ui/fade-in";
 import StatePanel from "@/components/ui/state-panel";
-import { HOURLY_RATE } from "@/lib/pricing";
+import { getHourlyRate, type ActivityType } from "@/lib/pricing";
 import { getErrorMessage } from "@/lib/utils/error-message";
 
 type Slot = {
@@ -48,6 +48,7 @@ function hasSlotStarted(targetDate: Date, startHour: number, now = new Date()) {
 function buildSlotsFromApi(
   data: { bookingSlots: BookingSlotApi[]; blockedSlots: SlotBlockApi[] },
   targetDate: Date,
+  hourlyRate: number,
 ): Slot[] {
   const nextSlots: Slot[] = [];
   for (let hour = 6; hour < 22; hour++) {
@@ -60,7 +61,7 @@ function buildSlotsFromApi(
     );
     nextSlots.push({
       time24: `${String(hour).padStart(2, "0")}:00 - ${String(hour + 1).padStart(2, "0")}:00`,
-      price: HOURLY_RATE,
+      price: hourlyRate,
       status: isBooked ? "booked" : isBlocked ? "blocked" : "available",
     });
   }
@@ -89,8 +90,13 @@ function to12HourStart(time24: string) {
 /* ── page ────────────────────────────────────────────────────────── */
 export default function BookingPage() {
   const router = useRouter();
+  const pathname = usePathname();
+  const activity: ActivityType = pathname.includes("pickleball") ? "PICKLEBALL" : "FUTSAL";
+  const hourlyRate = getHourlyRate(activity);
+  const isPickleball = activity === "PICKLEBALL";
 
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [courtNumber, setCourtNumber] = useState(1);
   const [selectedSlots, setSelectedSlots] = useState<string[]>([]);
   const [slots, setSlots] = useState<Slot[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(true);
@@ -101,16 +107,22 @@ export default function BookingPage() {
     [],
   );
 
-  const fetchSlotsForDate = async (date: Date) => {
+  const fetchSlotsForDate = useEffectEvent(async (date: Date) => {
     const dateKey = format(date, "yyyy-MM-dd");
-    const res = await fetch(`/api/slots?date=${dateKey}`, { cache: "no-store" });
+    const params = new URLSearchParams({
+      date: dateKey,
+      activity,
+      court: String(courtNumber),
+    });
+    const res = await fetch(`/api/slots?${params.toString()}`, { cache: "no-store" });
     const data = await res.json();
     if (!res.ok) throw new Error(data?.error || "Failed to load slots");
     return buildSlotsFromApi(
       { bookingSlots: data.bookingSlots || [], blockedSlots: data.blockedSlots || [] },
       date,
+      hourlyRate,
     );
-  };
+  });
 
   useEffect(() => {
     const load = async (resetSelection = true) => {
@@ -136,7 +148,7 @@ export default function BookingPage() {
     load(true);
     const interval = setInterval(() => load(false), 10_000);
     return () => clearInterval(interval);
-  }, [selectedDate]);
+  }, [selectedDate, activity, courtNumber, hourlyRate]);
 
   const toggleSlot = (slot: Slot) => {
     if (slot.status !== "available") return;
@@ -177,6 +189,8 @@ export default function BookingPage() {
         }),
       ),
       total: String(total),
+      activity,
+      court: String(courtNumber),
     });
     router.push(`/book/details?${params.toString()}`);
   };
@@ -189,13 +203,15 @@ export default function BookingPage() {
         <FadeIn>
           <span className="eyebrow eyebrow--accent" style={{ marginBottom: 16, display: "inline-flex" }}>
             <span className="num">B</span>
-            Booking
+            {isPickleball ? "Pickleball booking" : "Futsal booking"}
           </span>
           <h1 style={{ fontFamily: "var(--f-sans)", fontWeight: 600, letterSpacing: "-0.04em", lineHeight: 1, fontSize: "clamp(38px,5.4vw,72px)", margin: "16px 0 0", color: "var(--fg)" }}>
-            Pick your date<br />and slot.
+            Book {isPickleball ? "a pickleball court" : "the futsal"}.<br />Pick your time.
           </h1>
           <p style={{ marginTop: 24, fontSize: "clamp(15px,1.2vw,18px)", lineHeight: 1.6, color: "var(--fg-3)", maxWidth: "56ch" }}>
-            Choose your preferred time, then add your contact details to reserve it.
+            {isPickleball
+              ? "Choose Court 1 or Court 2, then reserve one or two consecutive hours."
+              : "Choose your preferred time, then add your contact details to reserve it."}
           </p>
         </FadeIn>
 
@@ -220,6 +236,33 @@ export default function BookingPage() {
 
           {/* LEFT — date + slots ──────────────────────────────────── */}
           <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
+
+            {isPickleball && (
+              <FadeIn>
+                <div className="rounded-[24px] border border-white/10 bg-white/[0.025] p-4 sm:p-5">
+                  <div className="mb-4 flex items-start justify-between gap-4">
+                    <div>
+                      <span className="eyebrow">Choose a court</span>
+                      <p className="mt-2 text-sm leading-6 text-[#94A3B8]">Both courts have the same hours and NPR 800 hourly rate.</p>
+                    </div>
+                    <Trophy size={18} className="mt-1 shrink-0 text-[#B8FF3B]" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[1, 2].map((court) => (
+                      <button
+                        key={court}
+                        type="button"
+                        onClick={() => { setCourtNumber(court); setSelectedSlots([]); }}
+                        className={`rounded-[18px] border px-4 py-4 text-left transition-all duration-200 ${courtNumber === court ? "border-[#B8FF3B] bg-[#B8FF3B]/10 text-white shadow-[0_12px_30px_rgba(184,255,59,0.08)]" : "border-white/10 bg-white/[0.025] text-[#94A3B8] hover:border-white/20 hover:text-white"}`}
+                      >
+                        <span className="block text-[11px] uppercase tracking-[0.14em] text-[#6F7D90]">Pickleball</span>
+                        <span className="mt-1 block text-lg font-semibold">Court {court}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </FadeIn>
+            )}
 
             {/* Date picker */}
             <FadeIn>
@@ -305,7 +348,7 @@ export default function BookingPage() {
                   <div className="slot-board-head">
                     <div>
                       <p className="slot-board-title">Select 1 or 2 consecutive times</p>
-                      <p className="slot-board-detail">Each slot is 1 hour · NPR {HOURLY_RATE.toLocaleString()}</p>
+                      <p className="slot-board-detail">Each slot is 1 hour · NPR {hourlyRate.toLocaleString()}</p>
                     </div>
                     {!loadingSlots && (
                       <span className="slot-board-count">
@@ -387,7 +430,9 @@ export default function BookingPage() {
                 </div>
                 <div className="summary-row">
                   <span className="summary-row-label">Format</span>
-                  <span className="summary-row-value">5-a-side · Pay at venue</span>
+                  <span className="summary-row-value">
+                    {isPickleball ? `Pickleball · Court ${courtNumber}` : "Futsal"} · Pay at venue
+                  </span>
                 </div>
 
                 <div className="summary-divider" />

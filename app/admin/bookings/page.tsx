@@ -20,7 +20,7 @@ type BookingApi = {
   totalPrice: number;
   createdAt: string;
   user: { id: string; name: string; phone: string; email?: string | null };
-  slots: { id: string; startHour: number; endHour: number; price: number }[];
+  slots: { id: string; startHour: number; endHour: number; price: number; activity: "FUTSAL" | "PICKLEBALL"; courtNumber: number }[];
 };
 
 function hourTo12(hour: number) {
@@ -229,6 +229,11 @@ export default function AdminBookingsPage() {
             <StatusBadge color={statusColor(booking.status)}>{statusLabel(booking.status)}</StatusBadge>
             <StatusBadge color={booking.paymentStatus === "PAID" ? "var(--accent)" : "#F4D35E"}>
               {booking.paymentStatus === "PAID" ? "Paid" : "Pending"}
+            </StatusBadge>
+            <StatusBadge color="#7DD3FC">
+              {booking.slots[0]?.activity === "PICKLEBALL"
+                ? `Pickleball · Court ${booking.slots[0].courtNumber}`
+                : "Futsal"}
             </StatusBadge>
           </div>
           <span style={{ fontFamily: "var(--f-mono)", fontSize: "16px", fontWeight: 600, color: "var(--fg)", letterSpacing: "-0.03em", fontVariantNumeric: "tabular-nums" }}>

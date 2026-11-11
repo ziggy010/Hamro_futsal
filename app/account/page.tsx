@@ -10,6 +10,8 @@ type Slot = {
   startHour: number;
   endHour: number;
   price: number;
+  activity: "FUTSAL" | "PICKLEBALL";
+  courtNumber: number;
 };
 
 type Booking = {
@@ -46,7 +48,7 @@ export default async function AccountPage() {
           paymentStatus: true,
           bookingDate: true,
           totalPrice: true,
-          slots: { select: { id: true, startHour: true, endHour: true, price: true } },
+          slots: { select: { id: true, startHour: true, endHour: true, price: true, activity: true, courtNumber: true } },
         },
         orderBy: { bookingDate: "desc" },
       },

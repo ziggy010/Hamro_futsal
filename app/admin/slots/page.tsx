@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { addDays, format } from "date-fns";
 import { useRouter } from "next/navigation";
 import StatePanel from "@/components/ui/state-panel";
-import { HOURLY_RATE } from "@/lib/pricing";
+import { getHourlyRate, type ActivityType } from "@/lib/pricing";
 import { getErrorMessage } from "@/lib/utils/error-message";
 
 type BookingSlotApi = {
@@ -75,6 +75,8 @@ function StatusBadge({ color, children }: { color: string; children: React.React
 
 export default function AdminSlotsPage() {
   const router = useRouter();
+  const [activity, setActivity] = useState<ActivityType>("FUTSAL");
+  const [courtNumber, setCourtNumber] = useState(1);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [slots, setSlots] = useState<SlotRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,6 +84,11 @@ export default function AdminSlotsPage() {
   const [actionMessage, setActionMessage] = useState("");
   const [actionError, setActionError] = useState("");
   const [processingKey, setProcessingKey] = useState("");
+  const [bookingSlot, setBookingSlot] = useState<SlotRow | null>(null);
+  const [customerName, setCustomerName] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
+  const [paymentStatus, setPaymentStatus] = useState<"PENDING" | "PAID">("PENDING");
+  const hourlyRate = getHourlyRate(activity);
 
   const weekDates = useMemo(() => Array.from({ length: 7 }).map((_, i) => addDays(new Date(), i)), []);
   const targetDate = useMemo(() => format(selectedDate, "yyyy-MM-dd"), [selectedDate]);
@@ -90,7 +97,12 @@ export default function AdminSlotsPage() {
     try {
       setLoading(true);
       setError("");
-      const res = await fetch(`/api/slots?date=${targetDate}`, { cache: "no-store" });
+      const params = new URLSearchParams({
+        date: targetDate,
+        activity,
+        court: String(courtNumber),
+      });
+      const res = await fetch(`/api/slots?${params.toString()}`, { cache: "no-store" });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Failed to load slots");
 
@@ -117,7 +129,7 @@ export default function AdminSlotsPage() {
             time: slotLabel(hour, hour + 1),
             startHour: hour,
             endHour: hour + 1,
-            price: HOURLY_RATE,
+            price: hourlyRate,
             status: "blocked",
             customer: blockedSlot.reason,
             slotBlockId: blockedSlot.id,
@@ -127,7 +139,7 @@ export default function AdminSlotsPage() {
             time: slotLabel(hour, hour + 1),
             startHour: hour,
             endHour: hour + 1,
-            price: HOURLY_RATE,
+            price: hourlyRate,
             status: "available",
           });
         }
@@ -139,7 +151,7 @@ export default function AdminSlotsPage() {
     } finally {
       setLoading(false);
     }
-  }, [targetDate]);
+  }, [targetDate, activity, courtNumber, hourlyRate]);
 
   useEffect(() => { fetchSlots(); }, [fetchSlots]);
 
@@ -152,7 +164,14 @@ export default function AdminSlotsPage() {
       const res = await fetch("/api/slots/block", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ blockDate: targetDate, startHour: slot.startHour, endHour: slot.endHour, reason: "ADMIN_BLOCK" }),
+        body: JSON.stringify({
+          blockDate: targetDate,
+          startHour: slot.startHour,
+          endHour: slot.endHour,
+          reason: "ADMIN_BLOCK",
+          activity,
+          courtNumber,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Failed to block slot");
@@ -160,6 +179,46 @@ export default function AdminSlotsPage() {
       await fetchSlots();
     } catch (err: unknown) {
       setActionError(getErrorMessage(err, "Error blocking slot"));
+    } finally {
+      setProcessingKey("");
+    }
+  };
+
+  const openBookingForm = (slot: SlotRow) => {
+    setBookingSlot(slot);
+    setCustomerName("");
+    setCustomerPhone("");
+    setPaymentStatus("PENDING");
+    setActionError("");
+  };
+
+  const handleAdminBooking = async () => {
+    if (!bookingSlot) return;
+    try {
+      setProcessingKey(`${bookingSlot.startHour}-${bookingSlot.endHour}-book`);
+      setActionError("");
+      setActionMessage("");
+      const res = await fetch("/api/admin/bookings/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: customerName,
+          phone: customerPhone,
+          bookingDate: targetDate,
+          startHour: bookingSlot.startHour,
+          endHour: bookingSlot.endHour,
+          activity,
+          courtNumber,
+          paymentStatus,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Failed to create booking");
+      setActionMessage(`Booked ${bookingSlot.time} for ${customerName.trim()}.`);
+      setBookingSlot(null);
+      await fetchSlots();
+    } catch (err: unknown) {
+      setActionError(getErrorMessage(err, "Error creating booking"));
     } finally {
       setProcessingKey("");
     }
@@ -238,8 +297,36 @@ export default function AdminSlotsPage() {
           Slots.
         </h1>
         <p style={{ marginTop: "1rem", fontSize: "16px", lineHeight: 1.7, color: "var(--fg-3)", maxWidth: "52ch" }}>
-          Manage availability, block time, and control the weekly schedule.
+          Manage futsal and both pickleball courts, create customer bookings, or block unavailable time.
         </p>
+
+        <div className="mt-8 rounded-[20px] border border-white/10 bg-white/[0.025] p-3 sm:p-4">
+          <span className="eyebrow">Activity and court</span>
+          <div className="mt-3 grid gap-2 sm:grid-cols-3">
+            {[
+              { activity: "FUTSAL" as const, court: 1, label: "Futsal" },
+              { activity: "PICKLEBALL" as const, court: 1, label: "Pickleball · Court 1" },
+              { activity: "PICKLEBALL" as const, court: 2, label: "Pickleball · Court 2" },
+            ].map((option) => {
+              const active = activity === option.activity && courtNumber === option.court;
+              return (
+                <button
+                  key={`${option.activity}-${option.court}`}
+                  type="button"
+                  onClick={() => {
+                    setActivity(option.activity);
+                    setCourtNumber(option.court);
+                    setActionMessage("");
+                    setActionError("");
+                  }}
+                  className={`rounded-[16px] border px-4 py-3 text-left text-sm font-medium transition ${active ? "border-[#B8FF3B] bg-[#B8FF3B]/10 text-[#B8FF3B]" : "border-white/10 bg-white/[0.025] text-[#94A3B8] hover:border-white/20 hover:text-white"}`}
+                >
+                  {option.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
         {/* ── DAY PICKER ──────────────────────────────────────────────── */}
         <div style={{ marginTop: "2rem", display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "0.5rem" }}>
@@ -336,6 +423,9 @@ export default function AdminSlotsPage() {
             <span className="eyebrow">Schedule</span>
             <p style={{ fontSize: "16px", fontWeight: 600, color: "var(--fg)", marginTop: "0.25rem" }}>
               {format(selectedDate, "EEEE, MMMM d")}
+              <span style={{ color: "var(--accent)", marginLeft: "0.5rem" }}>
+                · {activity === "PICKLEBALL" ? `Pickleball Court ${courtNumber}` : "Futsal"}
+              </span>
             </p>
           </div>
 
@@ -390,13 +480,21 @@ export default function AdminSlotsPage() {
                     {/* Right: actions */}
                     <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignSelf: "flex-start" }}>
                       {slot.status === "available" && (
-                        <button
-                          className="btn btn-ghost btn-sm"
-                          onClick={() => handleBlock(slot)}
-                          disabled={processingKey === `${slot.startHour}-${slot.endHour}-block`}
-                        >
-                          {processingKey === `${slot.startHour}-${slot.endHour}-block` ? "Blocking..." : "Block slot"}
-                        </button>
+                        <>
+                          <button
+                            className="btn btn-primary btn-sm"
+                            onClick={() => openBookingForm(slot)}
+                          >
+                            Book for customer
+                          </button>
+                          <button
+                            className="btn btn-ghost btn-sm"
+                            onClick={() => handleBlock(slot)}
+                            disabled={processingKey === `${slot.startHour}-${slot.endHour}-block`}
+                          >
+                            {processingKey === `${slot.startHour}-${slot.endHour}-block` ? "Blocking..." : "Block slot"}
+                          </button>
+                        </>
                       )}
 
                       {slot.status === "booked" && (
@@ -449,6 +547,61 @@ export default function AdminSlotsPage() {
         </div>
 
       </section>
+
+      {bookingSlot && (
+        <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/70 p-3 backdrop-blur-sm sm:items-center sm:p-6" onMouseDown={(event) => { if (event.currentTarget === event.target) setBookingSlot(null); }}>
+          <div role="dialog" aria-modal="true" aria-labelledby="admin-booking-title" className="w-full max-w-lg rounded-[26px] border border-white/10 bg-[#10161D] p-5 shadow-[0_30px_100px_rgba(0,0,0,0.55)] sm:p-7">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <span className="eyebrow">Venue booking</span>
+                <h2 id="admin-booking-title" className="mt-2 text-2xl font-semibold tracking-[-0.035em] text-white">Book for a customer</h2>
+                <p className="mt-2 text-sm leading-6 text-[#94A3B8]">
+                  {activity === "PICKLEBALL" ? `Pickleball Court ${courtNumber}` : "Futsal"} · {format(selectedDate, "EEE, MMM d")} · {bookingSlot.time}
+                </p>
+              </div>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setBookingSlot(null)}>Close</button>
+            </div>
+
+            <div className="mt-6 grid gap-4">
+              <label className="grid gap-2 text-sm text-[#AAB4C3]">
+                Customer name
+                <input autoFocus value={customerName} onChange={(event) => setCustomerName(event.target.value)} placeholder="Full name" className="rounded-[14px] border border-white/10 bg-white/[0.035] px-4 py-3 text-white outline-none transition focus:border-[#B8FF3B]" />
+              </label>
+              <label className="grid gap-2 text-sm text-[#AAB4C3]">
+                Phone number
+                <input type="tel" value={customerPhone} onChange={(event) => setCustomerPhone(event.target.value)} placeholder="98XXXXXXXX" className="rounded-[14px] border border-white/10 bg-white/[0.035] px-4 py-3 text-white outline-none transition focus:border-[#B8FF3B]" />
+              </label>
+              <div>
+                <span className="text-sm text-[#AAB4C3]">Payment</span>
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  {(["PENDING", "PAID"] as const).map((status) => (
+                    <button key={status} type="button" onClick={() => setPaymentStatus(status)} className={`rounded-[14px] border px-4 py-3 text-sm transition ${paymentStatus === status ? "border-[#B8FF3B] bg-[#B8FF3B]/10 text-[#B8FF3B]" : "border-white/10 text-[#94A3B8]"}`}>
+                      {status === "PAID" ? "Already paid" : "Pay at venue"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {actionError && <p className="mt-4 rounded-[14px] border border-red-400/20 bg-red-400/5 px-4 py-3 text-sm text-red-300">{actionError}</p>}
+
+            <div className="mt-6 flex items-center justify-between gap-4 border-t border-white/10 pt-5">
+              <div>
+                <span className="block text-[10px] uppercase tracking-[0.14em] text-[#6F7D90]">Total</span>
+                <strong className="mt-1 block text-xl text-white">NPR {hourlyRate.toLocaleString()}</strong>
+              </div>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={handleAdminBooking}
+                disabled={!customerName.trim() || !customerPhone.trim() || processingKey.endsWith("-book")}
+              >
+                {processingKey.endsWith("-book") ? "Booking..." : "Confirm booking"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

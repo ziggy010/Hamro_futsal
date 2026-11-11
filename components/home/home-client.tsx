@@ -23,7 +23,7 @@ const QUICK_SLOTS = [
 ];
 
 const STEPS = [
-  { n: "01", label: "Pick your slot",    text: "Choose any available time. Every slot is NPR 1,200 per hour." },
+  { n: "01", label: "Pick your slot",    text: "Choose futsal at NPR 1,200 per hour or pickleball at NPR 800 per court hour." },
   { n: "02", label: "Reserve online",    text: "Add your contact details and lock the selected time for your squad. No payment yet." },
   { n: "03", label: "Show up and play",  text: "Your slot is held. Pay on arrival at the venue — card or cash, your call." },
 ];
@@ -40,7 +40,7 @@ const MARQUEE_ITEMS = [
   <><span className="star">★</span> Daily 6 AM — 10 PM</>,
   <>Book your preferred time online</>,
   <><span className="star">★</span> Floodlit pitch — clean turf</>,
-  <>Pay at venue · NPR 1,200 / hr</>,
+  <>Pay at venue · Rates from NPR 800 / hr</>,
 ];
 
 /* ── count-up hook ───────────────────────────────────────────────── */
@@ -147,7 +147,7 @@ function AerialMonitor() {
         {FEATURES.map((f, i) => (
           <Link
             key={f.n}
-            href="/book"
+            href={f.label === "Pickleball" ? "/book/pickleball" : "/book"}
             className={`hero-aerial-item${i === active ? " on" : ""}`}
             onMouseEnter={() => { setActive(i); setAuto(false); }}
           >
@@ -163,7 +163,7 @@ function AerialMonitor() {
 
         <div className="hero-aerial-quickbook">
           <div className="hero-aerial-qb-head">
-            <span><b>Tonight</b> · 5 PM – 10 PM</span>
+            <span><b>Futsal tonight</b> · 5 PM – 10 PM</span>
             <span className="hero-aerial-qb-peak">NPR 1,200 / HR</span>
           </div>
           <div className="hero-aerial-qb-slots">
@@ -258,8 +258,8 @@ export default function HomeClient() {
                 <dd><b>{bookingsToday}</b></dd>
               </div>
               <div className="hero-stat">
-                <dt>Rate / hr</dt>
-                <dd><span className="npr">NPR</span><b>1,200</b></dd>
+                <dt>From / hr</dt>
+                <dd><span className="npr">NPR</span><b>800</b></dd>
               </div>
             </dl>
           </div>
@@ -287,7 +287,7 @@ export default function HomeClient() {
             {[
               { value: "6 AM",   label: "Opens daily" },
               { value: "10 PM",  label: "Last slot" },
-              { value: <>1,200<span style={{ fontSize: "0.45em", color: "var(--fg-dim)", marginLeft: 6, fontWeight: 500, letterSpacing: 0 }}>NPR</span></>, label: "Flat rate per hour" },
+              { value: <>800<span style={{ fontSize: "0.45em", color: "var(--fg-dim)", marginLeft: 6, fontWeight: 500, letterSpacing: 0 }}>NPR</span></>, label: "Pickleball per hour" },
               { value: "1–2 hr", label: "Booking duration" },
             ].map((f, i) => (
               <FadeIn key={i} delay={0.06 * i}>
