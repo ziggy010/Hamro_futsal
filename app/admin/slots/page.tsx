@@ -98,7 +98,7 @@ export default function AdminSlotsPage() {
       const blockedSlots: SlotBlockApi[] = data.blockedSlots || [];
 
       const rows: SlotRow[] = [];
-      for (let hour = 7; hour < 22; hour++) {
+      for (let hour = 6; hour < 22; hour++) {
         const bookingSlot = bookingSlots.find((s) => s.startHour === hour && s.endHour === hour + 1);
         const blockedSlot = blockedSlots.find((s) => s.startHour === hour && s.endHour === hour + 1);
 

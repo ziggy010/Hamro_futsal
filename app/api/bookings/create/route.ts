@@ -46,7 +46,7 @@ function normalizeSlots(slots: IncomingSlot[]) {
     const isValidHour =
       Number.isInteger(slot.startHour) &&
       Number.isInteger(slot.endHour) &&
-      slot.startHour >= 7 &&
+      slot.startHour >= 6 &&
       slot.endHour <= 22 &&
       slot.endHour === slot.startHour + 1;
 

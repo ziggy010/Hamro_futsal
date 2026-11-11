@@ -79,7 +79,7 @@ export default function Footer() {
 
             <div className="mt-5 space-y-3 text-[15px] text-[#94A3B8]">
               <p>Open daily</p>
-              <p>7:00 AM – 10:00 PM</p>
+              <p>6:00 AM – 10:00 PM</p>
               <p>Walk-ins supported</p>
             </div>
           </div>
@@ -90,7 +90,7 @@ export default function Footer() {
             </p>
 
             <div className="mt-5 space-y-3 text-[15px] text-[#94A3B8]">
-              <p>Lamachaur, Dekocha, Bhaktapur</p>
+              <p>Bhaktapur-10, Bhaktapur</p>
               <p>9813110577</p>
               <p>tajale01@email.com</p>
             </div>

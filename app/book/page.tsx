@@ -50,7 +50,7 @@ function buildSlotsFromApi(
   targetDate: Date,
 ): Slot[] {
   const nextSlots: Slot[] = [];
-  for (let hour = 7; hour < 22; hour++) {
+  for (let hour = 6; hour < 22; hour++) {
     if (hasSlotStarted(targetDate, hour)) continue;
     const isBooked = data.bookingSlots.some(
       (s) => s.startHour === hour && s.endHour === hour + 1,

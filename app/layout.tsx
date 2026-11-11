@@ -10,7 +10,7 @@ import Providers from "./providers";
 export const metadata: Metadata = {
   title: "Strike Yard",
   description:
-    "Book your game at Strike Yard in Lamachaur, Dekocha, Bhaktapur. Simple, fast, and built for players.",
+    "Book your game at Strike Yard in Bhaktapur-10, Bhaktapur. Simple, fast, and built for players.",
 };
 
 export const viewport: Viewport = {

@@ -10,10 +10,10 @@ import FadeIn from "@/components/ui/fade-in";
 const ROTATE_WORDS = ["belongs", "gathers", "stays", "wins", "breathes", "lives"];
 
 const FEATURES = [
-  { n: "01", label: "Floodlit pitch",  sub: "5-a-side · clean turf · open till 10", x: 26, y: 26 },
-  { n: "02", label: "Café terrace",    sub: "Rooftop · coffee & snacks",             x: 52, y: 34 },
-  { n: "03", label: "Garden lounge",   sub: "Pre-match chill · string lights",       x: 42, y: 64 },
-  { n: "04", label: "Tennis & track",  sub: "Sister courts · ring track",            x: 74, y: 62 },
+  { n: "01", label: "Futsal", x: 26, y: 26 },
+  { n: "02", label: "Beer garden", x: 52, y: 34 },
+  { n: "03", label: "Pickleball", x: 42, y: 64 },
+  { n: "04", label: "Garden Lounge", x: 74, y: 62 },
 ];
 
 const QUICK_SLOTS = [
@@ -37,7 +37,7 @@ const CAFE_POINTS = [
 const MARQUEE_ITEMS = [
   <><span className="star">★</span> Bhaktapur · Nepal</>,
   <>Futsal &amp; café — est. 2024</>,
-  <><span className="star">★</span> Daily 7 AM — 10 PM</>,
+  <><span className="star">★</span> Daily 6 AM — 10 PM</>,
   <>Book your preferred time online</>,
   <><span className="star">★</span> Floodlit pitch — clean turf</>,
   <>Pay at venue · NPR 1,200 / hr</>,
@@ -154,7 +154,6 @@ function AerialMonitor() {
             <span className="hero-aerial-item-n">{f.n}</span>
             <span className="hero-aerial-item-text">
               <b>{f.label}</b>
-              <em>{f.sub}</em>
             </span>
             <span className="hero-aerial-item-arr">
               <ArrowRight size={12} />
@@ -252,7 +251,7 @@ export default function HomeClient() {
             <dl className="hero-stats">
               <div className="hero-stat">
                 <dt>Open slots</dt>
-                <dd><b>{openCount}</b><span> / 15</span></dd>
+                <dd><b>{openCount}</b><span> / 16</span></dd>
               </div>
               <div className="hero-stat">
                 <dt>Booked today</dt>
@@ -286,7 +285,7 @@ export default function HomeClient() {
         <div className="container">
           <div className="facts">
             {[
-              { value: "7 AM",   label: "Opens daily" },
+              { value: "6 AM",   label: "Opens daily" },
               { value: "10 PM",  label: "Last slot" },
               { value: <>1,200<span style={{ fontSize: "0.45em", color: "var(--fg-dim)", marginLeft: 6, fontWeight: 500, letterSpacing: 0 }}>NPR</span></>, label: "Flat rate per hour" },
               { value: "1–2 hr", label: "Booking duration" },
@@ -430,7 +429,7 @@ export default function HomeClient() {
                   Ready to play?
                 </h2>
                 <p style={{ color: "var(--fg-3)", fontSize: 15, marginTop: 16 }}>
-                  Bhaktapur · Open daily 7 AM – 10 PM
+                  Bhaktapur · Open daily 6 AM – 10 PM
                 </p>
               </div>
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
