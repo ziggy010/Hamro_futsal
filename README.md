@@ -7,8 +7,7 @@ The app supports:
 - account signup and login
 - standard 10-player slot reservations
 - user account management
-- admin booking, slot, open-game, and sales management
-- manual open-game expiry from the admin dashboard
+- admin booking, slot, and sales management
 
 ## Project Overview
 
@@ -21,7 +20,7 @@ This project is organized around a few core flows:
   Users can view active bookings in their account and cancel eligible bookings before the lock window.
 
 - `Run venue operations from admin`
-  Admin can review bookings, mark payments as paid, block or unblock slots, manage open games, and review sales.
+  Admin can review bookings, mark payments as paid, block or unblock slots, and review sales.
 
 ## Tech Stack
 
@@ -112,7 +111,6 @@ After login, admin can access:
 
 - `/admin`
 - `/admin/bookings`
-- `/admin/open-games`
 - `/admin/slots`
 - `/admin/sales`
 
@@ -120,7 +118,6 @@ Important admin behavior:
 
 - finished bookings can still be marked as paid from admin
 - cancelled or expired bookings cannot be marked as paid
-- open games can be manually expired from the admin dashboard
 - slot blocking is manual and prevents conflicting bookings
 
 ## Known Flows
@@ -136,11 +133,12 @@ Important admin behavior:
 
 ### Paused Open Game Flow
 
-The open-game implementation and admin tools remain in the codebase, but the
-customer feature is currently disabled through `OPEN_GAMES_ENABLED` in
-`lib/features.ts`. New open bookings are rejected by the booking API, and
-`/games` redirects to `/book`. Set the feature flag to `true` and restore the
-public navigation and booking choice before relaunching it.
+The open-game implementation remains in the codebase, but its public and admin
+entry points are currently disabled through `OPEN_GAMES_ENABLED` in
+`lib/features.ts`. New open bookings are rejected by the booking API,
+`/games` redirects to `/book`, and `/admin/open-games` redirects to `/admin`.
+Set the feature flag to `true` and restore the public and admin navigation
+before relaunching it.
 
 ### User Account Flow
 
@@ -157,7 +155,6 @@ Admin can:
 - search and filter bookings
 - mark bookings as paid
 - cancel bookings
-- review open-game fill status
 - block and unblock slots
 - review daily sales totals
 
@@ -165,7 +162,7 @@ Admin can:
 
 This project no longer uses Vercel cron configuration.
 
-Open-game expiry is handled manually from admin through the dashboard action, so a Vercel Pro cron setup is not required.
+The paused open-game feature does not use a cron job, so a Vercel Pro cron setup is not required.
 
 Before deploying, make sure:
 

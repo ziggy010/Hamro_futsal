@@ -109,7 +109,7 @@ export default function Navbar() {
                   STRIKE YARD
                 </p>
                 <p className="mt-1 truncate text-[10px] text-[#94A3B8] sm:text-[11px]">
-                  Futsal · Café · Community
+                  Futsal · Pickleball · Beer Garden
                 </p>
               </div>
             </Link>

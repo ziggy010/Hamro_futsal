@@ -34,14 +34,14 @@ export default function Footer() {
                     Strike Yard
                   </p>
                   <p className="text-xs text-[#94A3B8]">
-                    Futsal · Café · Community
+                    Futsal · Pickleball · Beer Garden
                   </p>
                 </div>
               </div>
 
               <p className="mt-5 max-w-sm text-[15px] leading-8 text-[#94A3B8]">
                 Premium futsal booking with a cleaner matchday experience,
-                smooth mobile flow, and a café space built for local players.
+                pickleball courts, and a beer garden built for the community.
               </p>
             </div>
 

@@ -8,7 +8,6 @@ import { getErrorMessage } from "@/lib/utils/error-message";
 
 type BookingApi = {
   id: string;
-  bookingType: "PRIVATE" | "OPEN";
   status:
     | "PRIVATE_CONFIRMED"
     | "OPEN_PENDING_FILL"
@@ -16,19 +15,12 @@ type BookingApi = {
     | "OPEN_EXPIRED"
     | "CANCELLED";
   bookingDate: string;
-  playersCount: number;
   paymentStatus: "PENDING" | "PAID";
   paidAt?: string | null;
   totalPrice: number;
   createdAt: string;
   user: { id: string; name: string; phone: string; email?: string | null };
   slots: { id: string; startHour: number; endHour: number; price: number }[];
-  openGame?: {
-    id: string;
-    status: "PENDING_FILL" | "CONFIRMED" | "FULL" | "EXPIRED" | "CANCELLED";
-    currentPlayers: number;
-    maxPlayers: number;
-  } | null;
 };
 
 function hourTo12(hour: number) {
@@ -69,8 +61,8 @@ function statusColor(status: BookingApi["status"]): string {
 
 function statusLabel(status: BookingApi["status"]): string {
   if (status === "PRIVATE_CONFIRMED") return "Confirmed";
-  if (status === "OPEN_PENDING_FILL") return "Pending Fill";
-  if (status === "OPEN_CONFIRMED") return "Open Confirmed";
+  if (status === "OPEN_PENDING_FILL") return "Pending";
+  if (status === "OPEN_CONFIRMED") return "Confirmed";
   if (status === "OPEN_EXPIRED") return "Expired";
   return "Cancelled";
 }
@@ -107,7 +99,6 @@ export default function AdminBookingsPage() {
   const [processingId, setProcessingId] = useState("");
   const [search, setSearch] = useState("");
   const [showFinishedBookings, setShowFinishedBookings] = useState(false);
-  const [typeFilter, setTypeFilter] = useState<"ALL" | "PRIVATE" | "OPEN">("ALL");
   const [dateFilter, setDateFilter] = useState<"ALL" | "TODAY">("ALL");
 
   const fetchBookings = async () => {
@@ -182,16 +173,15 @@ export default function AdminBookingsPage() {
         booking.user.name.toLowerCase().includes(search.toLowerCase()) ||
         booking.user.phone.includes(search) ||
         booking.id.toLowerCase().includes(search.toLowerCase());
-      const matchesType = typeFilter === "ALL" || booking.bookingType === typeFilter;
       let matchesDate = true;
       if (dateFilter === "TODAY") {
         const bd = new Date(booking.bookingDate);
         bd.setHours(0, 0, 0, 0);
         matchesDate = bd.getTime() === today.getTime();
       }
-      return matchesSearch && matchesType && matchesDate;
+      return matchesSearch && matchesDate;
     });
-  }, [bookings, search, typeFilter, dateFilter]);
+  }, [bookings, search, dateFilter]);
 
   const activeBookings = useMemo(() => filteredBookings.filter((b) => !isBookingFinished(b)), [filteredBookings]);
   const finishedBookings = useMemo(() => filteredBookings.filter((b) => isBookingFinished(b)), [filteredBookings]);
@@ -206,8 +196,8 @@ export default function AdminBookingsPage() {
     }).length;
   }, [bookings]);
 
-  const privateCount = useMemo(() => bookings.filter((b) => b.bookingType === "PRIVATE").length, [bookings]);
-  const openCount = useMemo(() => bookings.filter((b) => b.bookingType === "OPEN").length, [bookings]);
+  const upcomingCount = useMemo(() => bookings.filter((b) => !isBookingFinished(b)).length, [bookings]);
+  const pendingPaymentCount = useMemo(() => bookings.filter((b) => b.paymentStatus === "PENDING" && canManageBooking(b)).length, [bookings]);
 
   const filterBtnStyle = (active: boolean): React.CSSProperties => ({
     padding: "0.375rem 0.875rem",
@@ -265,12 +255,6 @@ export default function AdminBookingsPage() {
         {/* Meta + actions */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", flexWrap: "wrap" }}>
           <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-            <span style={{ fontSize: "11px", padding: "3px 8px", borderRadius: "6px", border: "1px solid var(--line)", color: "var(--fg-dim)" }}>
-              {booking.bookingType === "PRIVATE" ? "Private" : "Open"}
-            </span>
-            <span style={{ fontSize: "11px", padding: "3px 8px", borderRadius: "6px", border: "1px solid var(--line)", color: "var(--fg-dim)" }}>
-              {booking.playersCount} players
-            </span>
             <span style={{ fontSize: "11px", padding: "3px 8px", borderRadius: "6px", border: "1px solid var(--line)", color: "var(--fg-dim)", fontFamily: "var(--f-mono)" }}>
               {booking.id.slice(0, 10)}
             </span>
@@ -318,8 +302,8 @@ export default function AdminBookingsPage() {
 
   const stats = [
     { label: "Today", value: todaysBookingsCount },
-    { label: "Private", value: privateCount },
-    { label: "Open", value: openCount },
+    { label: "Upcoming", value: upcomingCount },
+    { label: "Pending payment", value: pendingPaymentCount },
   ];
 
   return (
@@ -430,13 +414,8 @@ export default function AdminBookingsPage() {
               />
             </div>
 
-            {/* Filter pills */}
+            {/* Date filter */}
             <div style={{ display: "flex", gap: "0.375rem", flexWrap: "wrap" }}>
-              {(["ALL", "PRIVATE", "OPEN"] as const).map((f) => (
-                <button key={f} onClick={() => setTypeFilter(f)} style={filterBtnStyle(typeFilter === f)}>
-                  {f === "ALL" ? "All types" : f === "PRIVATE" ? "Private" : "Open"}
-                </button>
-              ))}
               <button
                 onClick={() => setDateFilter(dateFilter === "TODAY" ? "ALL" : "TODAY")}
                 style={filterBtnStyle(dateFilter === "TODAY")}

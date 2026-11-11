@@ -9,7 +9,6 @@ import { getErrorMessage } from "@/lib/utils/error-message";
 
 type Booking = {
   id: string;
-  bookingType: "PRIVATE" | "OPEN";
   totalPrice: number;
   createdAt: string;
   paymentStatus: "PENDING" | "PAID";
@@ -21,8 +20,6 @@ type SalesResponse = {
   totalRevenue: number;
   collectedRevenue: number;
   pendingRevenue: number;
-  privateRevenue: number;
-  openRevenue: number;
   bookings: Booking[];
 };
 
@@ -55,7 +52,7 @@ function MetaLabel({ children }: { children: React.ReactNode }) {
 const quickLinks = [
   { label: "Dashboard", href: "/admin" },
   { label: "Bookings", href: "/admin/bookings" },
-  { label: "Open Games", href: "/admin/open-games" },
+  { label: "Slots", href: "/admin/slots" },
 ];
 
 export default function AdminSalesPage() {
@@ -93,8 +90,8 @@ export default function AdminSalesPage() {
   const revenueCards = [
     { title: "Collected today", value: `NPR ${(data?.collectedRevenue ?? 0).toLocaleString()}`, meta: `${paidCount} paid booking${paidCount === 1 ? "" : "s"}`, icon: CircleDollarSign },
     { title: "Pending today", value: `NPR ${(data?.pendingRevenue ?? 0).toLocaleString()}`, meta: `${pendingCount} booking${pendingCount === 1 ? "" : "s"} still unpaid`, icon: CreditCard },
-    { title: "Private revenue", value: `NPR ${(data?.privateRevenue ?? 0).toLocaleString()}`, meta: "Private-game contribution", icon: ReceiptText },
-    { title: "Open revenue", value: `NPR ${(data?.openRevenue ?? 0).toLocaleString()}`, meta: "Open-game contribution", icon: Wallet },
+    { title: "Total booked", value: `NPR ${(data?.totalRevenue ?? 0).toLocaleString()}`, meta: `${bookingCount} booking${bookingCount === 1 ? "" : "s"} today`, icon: ReceiptText },
+    { title: "Collection rate", value: bookingCount > 0 ? `${Math.round((paidCount / bookingCount) * 100)}%` : "—", meta: bookingCount > 0 ? "Bookings marked paid" : "No bookings today", icon: Wallet },
   ];
 
   return (
@@ -118,7 +115,7 @@ export default function AdminSalesPage() {
             Sales overview.
           </h1>
           <p style={{ marginTop: "1rem", fontSize: "16px", lineHeight: 1.7, color: "var(--fg-3)", maxWidth: "52ch" }}>
-            Track today&apos;s collected revenue, pending payments, and the booking mix driving venue income.
+            Track today&apos;s collected revenue, pending payments, and booking activity driving venue income.
           </p>
         </FadeIn>
 
@@ -221,8 +218,8 @@ export default function AdminSalesPage() {
                   </div>
                   <div style={{ padding: "0 1.75rem" }}>
                     {[
-                      { label: "Private games", value: `NPR ${(data.privateRevenue).toLocaleString()}`, note: "Exclusive bookings and larger single-party revenue" },
-                      { label: "Open games", value: `NPR ${(data.openRevenue).toLocaleString()}`, note: "Community fill and extra participation on open slots" },
+                      { label: "Total booked", value: `NPR ${data.totalRevenue.toLocaleString()}`, note: "The full value of today's active reservations" },
+                      { label: "Collected", value: `NPR ${data.collectedRevenue.toLocaleString()}`, note: `${paidCount} booking${paidCount === 1 ? "" : "s"} marked as paid` },
                       {
                         label: "Collection health",
                         value: bookingCount > 0 ? `${Math.round((paidCount / bookingCount) * 100)}% paid` : "No bookings",
@@ -320,7 +317,6 @@ export default function AdminSalesPage() {
                         <div>
                           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap", marginBottom: "0.375rem" }}>
                             <p style={{ fontSize: "14px", fontWeight: 600, color: "var(--fg)" }}>{booking.user.name}</p>
-                            <StatusBadge color="var(--fg-dim)">{booking.bookingType === "PRIVATE" ? "Private" : "Open"}</StatusBadge>
                             <StatusBadge color={booking.paymentStatus === "PAID" ? "var(--accent)" : "#F4D35E"}>
                               {booking.paymentStatus === "PAID" ? "Paid" : "Pending"}
                             </StatusBadge>

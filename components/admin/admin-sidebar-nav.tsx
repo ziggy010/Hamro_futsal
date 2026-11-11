@@ -7,7 +7,6 @@ import {
   LayoutDashboard,
   ReceiptText,
   ShieldCheck,
-  Users,
 } from "lucide-react";
 
 const adminLinks = [
@@ -22,12 +21,6 @@ const adminLinks = [
     description: "Reservations and payments",
     href: "/admin/bookings",
     icon: CalendarClock,
-  },
-  {
-    title: "Open Games",
-    description: "Cutoffs and player fill",
-    href: "/admin/open-games",
-    icon: Users,
   },
   {
     title: "Slots",

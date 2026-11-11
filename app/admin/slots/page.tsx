@@ -15,7 +15,6 @@ type BookingSlotApi = {
   price: number;
   booking: {
     id: string;
-    bookingType: "PRIVATE" | "OPEN";
     user: { name: string };
   };
 };
@@ -35,7 +34,6 @@ type SlotRow = {
   endHour: number;
   price: number;
   status: "available" | "booked" | "blocked";
-  bookingType?: "Private" | "Open";
   customer?: string;
   bookingId?: string;
   slotBlockId?: string;
@@ -111,7 +109,6 @@ export default function AdminSlotsPage() {
             endHour: hour + 1,
             price: bookingSlot.price,
             status: "booked",
-            bookingType: bookingSlot.booking.bookingType === "PRIVATE" ? "Private" : "Open",
             customer: bookingSlot.booking.user.name,
             bookingId: bookingSlot.booking.id,
           });
@@ -368,9 +365,6 @@ export default function AdminSlotsPage() {
                         <StatusBadge color={slotStatusColor(slot.status)}>
                           {slot.status === "available" ? "Available" : slot.status === "booked" ? "Booked" : "Blocked"}
                         </StatusBadge>
-                        {slot.bookingType && (
-                          <StatusBadge color="var(--fg-3)">{slot.bookingType}</StatusBadge>
-                        )}
                       </div>
 
                       <div style={{ display: "flex", flexWrap: "wrap", gap: "1.25rem" }}>
