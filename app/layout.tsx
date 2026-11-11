@@ -8,9 +8,9 @@ import { NavigationProgressProvider } from "@/components/layout/navigation-progr
 import Providers from "./providers";
 
 export const metadata: Metadata = {
-  title: "Hamro Futsal",
+  title: "Strike Yard",
   description:
-    "Book premium futsal in Lamachaur, Dekocha, Bhaktapur. Simple, fast, and built for players.",
+    "Book your game at Strike Yard in Lamachaur, Dekocha, Bhaktapur. Simple, fast, and built for players.",
 };
 
 export const viewport: Viewport = {

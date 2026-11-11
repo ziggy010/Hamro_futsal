@@ -23,7 +23,7 @@ export default function Footer() {
                   <div className="absolute inset-0 rounded-full bg-[#B8FF3B]/8 blur-xl" />
                   <Image
                     src="/logo.png"
-                    alt="Hamro Futsal logo"
+                    alt="Strike Yard logo"
                     width={52}
                     height={52}
                     className="relative h-12 w-12 object-contain"
@@ -32,10 +32,10 @@ export default function Footer() {
 
                 <div className="leading-tight">
                   <p className="text-sm font-semibold uppercase tracking-[0.18em] text-white">
-                    Hamro Futsal
+                    Strike Yard
                   </p>
                   <p className="text-xs text-[#94A3B8]">
-                    Premium futsal booking
+                    Futsal · Café · Community
                   </p>
                 </div>
               </div>
@@ -111,7 +111,7 @@ export default function Footer() {
         </div>
 
         <div className="mt-10 flex flex-col gap-3 border-t border-white/8 pt-5 text-sm text-[#6F7D90] md:mt-12 md:flex-row md:items-center md:justify-between">
-          <p>© 2026 Hamro Futsal. All rights reserved.</p>
+          <p>© 2026 Strike Yard. All rights reserved.</p>
           <p>Built for premium futsal booking.</p>
         </div>
       </div>

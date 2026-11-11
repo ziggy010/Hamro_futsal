@@ -1,4 +1,4 @@
-# Hamro Futsal Booking
+# Strike Yard Booking
 
 Premium futsal booking platform built with Next.js, NextAuth, Prisma, and PostgreSQL.
 

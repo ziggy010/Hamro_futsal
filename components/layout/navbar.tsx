@@ -97,7 +97,7 @@ export default function Navbar() {
 
                 <Image
                   src="/logo.png"
-                  alt="Hamro Futsal"
+                  alt="Strike Yard"
                   width={48}
                   height={48}
                   className="relative h-10 w-10 object-contain sm:h-11 sm:w-11"
@@ -107,10 +107,10 @@ export default function Navbar() {
 
               <div className="min-w-0 leading-none">
                 <p className="truncate text-[13px] font-semibold tracking-[0.06em] text-white transition-colors duration-300 group-hover:text-[#B8FF3B] sm:text-[15px] sm:tracking-[0.08em]">
-                  HAMRO FUTSAL
+                  STRIKE YARD
                 </p>
                 <p className="mt-1 truncate text-[10px] text-[#94A3B8] sm:text-[11px]">
-                  Luxury sports club
+                  Futsal · Café · Community
                 </p>
               </div>
             </Link>

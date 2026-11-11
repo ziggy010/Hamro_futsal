@@ -99,7 +99,7 @@ function AerialMonitor() {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/aerial-twilight.jpg"
-          alt="Aerial view of Hamro Futsal at twilight"
+          alt="Aerial view of Strike Yard at twilight"
           className="hero-aerial-photo"
         />
 
@@ -375,14 +375,14 @@ export default function HomeClient() {
               <div className="cafe-photo">
                 <Image
                   src="https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=900&q=80"
-                  alt="Hamro Café"
+                  alt="Strike Yard Café"
                   fill
                   sizes="(max-width: 900px) 100vw, 50vw"
                   className="object-cover"
                 />
                 <div className="cafe-tag">
                   <span className="dot" />
-                  Hamro Café
+                  Strike Yard Café
                 </div>
               </div>
             </FadeIn>

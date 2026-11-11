@@ -234,7 +234,7 @@ export default function ContactPage() {
             <svg
               viewBox="0 0 1320 640"
               style={{ display: "block", width: "100%", height: "auto" }}
-              aria-label="Stylized map of Hamro Futsal location in Lamachaur, Dekocha, Bhaktapur"
+              aria-label="Stylized map of Strike Yard in Lamachaur, Dekocha, Bhaktapur"
             >
               <defs>
                 <pattern id="mapGrid" width="40" height="40" patternUnits="userSpaceOnUse">
@@ -331,7 +331,7 @@ export default function ContactPage() {
 
               <g transform="translate(700 270)">
                 <rect x="0" y="0" width="220" height="58" rx="10" fill="#18202a" stroke="rgba(255,255,255,0.12)" strokeWidth="0.8" />
-                <text x="14" y="20" fontFamily="ui-monospace, SFMono-Regular, monospace" fontSize="9" fill="#B8FF3B" letterSpacing="2">HAMRO FUTSAL</text>
+                <text x="14" y="20" fontFamily="ui-monospace, SFMono-Regular, monospace" fontSize="9" fill="#B8FF3B" letterSpacing="2">STRIKE YARD</text>
                 <text x="14" y="40" fontFamily="ui-serif, Georgia, serif" fontSize="15" fill="#F5F7FB">Lamachaur · Dekocha · Bhaktapur</text>
                 <text x="14" y="52" fontFamily="ui-monospace, SFMono-Regular, monospace" fontSize="8" fill="#94A3B8" letterSpacing="1">7AM — 10PM · DAILY</text>
               </g>
