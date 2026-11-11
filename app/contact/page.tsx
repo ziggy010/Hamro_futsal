@@ -9,8 +9,8 @@ const faqs = [
     a: "No. Bookings are reserved online, and payment is handled at the venue when you arrive.",
   },
   {
-    q: "Can I create an open game?",
-    a: "Yes. During booking, choose the open game option so other signed-in players can join your session.",
+    q: "How far ahead can I book?",
+    a: "The booking page shows the next seven days of live availability. Choose any available time and confirm your details.",
   },
   {
     q: "Where exactly are you located?",

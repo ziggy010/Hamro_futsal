@@ -136,7 +136,7 @@ function SignupPageContent() {
             }}
           >
             Sign up once and every booking is tied to your name. Faster
-            reservations, open game access, and a full history of your slots.
+            reservations, clear availability, and a full history of your slots.
           </p>
 
           <div
@@ -155,7 +155,7 @@ function SignupPageContent() {
             }}
           >
             <span>Faster booking</span>
-            <span>Join open games</span>
+            <span>Clear availability</span>
             <span>Full slot history</span>
           </div>
         </FadeIn>

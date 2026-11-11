@@ -100,8 +100,8 @@ function LoginPageContent() {
               maxWidth: "44ch",
             }}
           >
-            Access your bookings, join open games, and manage your slots — all
-            tied to your account.
+            Access your bookings, manage your details, and keep your slot
+            history tied to your account.
           </p>
 
           <div
@@ -120,7 +120,7 @@ function LoginPageContent() {
             }}
           >
             <span>Real bookings</span>
-            <span>Open game access</span>
+            <span>Fast reservations</span>
             <span>Your account history</span>
           </div>
         </FadeIn>

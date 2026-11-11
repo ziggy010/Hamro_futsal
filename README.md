@@ -5,7 +5,7 @@ Premium futsal booking platform built with Next.js, NextAuth, Prisma, and Postgr
 The app supports:
 - public futsal booking for 1 or 2 continuous hours
 - account signup and login
-- private bookings and open games
+- standard 10-player slot reservations
 - user account management
 - admin booking, slot, open-game, and sales management
 - manual open-game expiry from the admin dashboard
@@ -16,9 +16,6 @@ This project is organized around a few core flows:
 
 - `Book a slot`
   Users pick a date, choose an available time, add booking details, and confirm the reservation.
-
-- `Create or join open games`
-  A booking can be created as an open game, and other logged-in users can join before cutoff.
 
 - `Manage bookings`
   Users can view active bookings in their account and cancel eligible bookings before the lock window.
@@ -133,17 +130,17 @@ Important admin behavior:
 1. Choose a date on `/book`
 2. Select one or two continuous slots
 3. Continue to booking details
-4. Choose `Private` or `Open`
+4. Confirm name and phone number
 5. Confirm booking
-6. Land on booking success page
+6. Land on the booking success page
 
-### Open Game Flow
+### Paused Open Game Flow
 
-1. A user creates an `Open` booking
-2. The game appears on `/games`
-3. Other logged-in users can join before cutoff
-4. Once minimum players are reached, the related booking becomes confirmed
-5. If minimum players are not reached by cutoff, admin can expire the game manually
+The open-game implementation and admin tools remain in the codebase, but the
+customer feature is currently disabled through `OPEN_GAMES_ENABLED` in
+`lib/features.ts`. New open bookings are rejected by the booking API, and
+`/games` redirects to `/book`. Set the feature flag to `true` and restore the
+public navigation and booking choice before relaunching it.
 
 ### User Account Flow
 
@@ -152,7 +149,6 @@ Users can:
 - edit profile name and phone
 - view active bookings
 - cancel eligible future bookings
-- view joined open games
 
 ### Admin Operations Flow
 

@@ -15,11 +15,9 @@ type Slot = {
 
 type Booking = {
   id: string;
-  bookingType: "PRIVATE" | "OPEN";
   status: string;
   paymentStatus: "PENDING" | "PAID";
   bookingDate: string | Date;
-  playersCount: number;
   totalPrice: number;
   slots: Slot[];
 };
@@ -142,16 +140,6 @@ function BookingRow({ booking, past, onCancel, cancelling }: {
           borderTop: "1px solid var(--line-soft, rgba(255,255,255,0.06))",
         }}
       >
-        <div>
-          <span style={{ fontFamily: "var(--f-mono)", fontSize: "10px", letterSpacing: "0.12em", textTransform: "uppercase" as const, color: "var(--fg-dim)", display: "block" }}>Type</span>
-          <span style={{ fontSize: "13px", color: "var(--fg-3)", marginTop: 3, display: "block" }}>
-            {booking.bookingType === "PRIVATE" ? "Private" : "Open"}
-          </span>
-        </div>
-        <div>
-          <span style={{ fontFamily: "var(--f-mono)", fontSize: "10px", letterSpacing: "0.12em", textTransform: "uppercase" as const, color: "var(--fg-dim)", display: "block" }}>Players</span>
-          <span style={{ fontSize: "13px", color: "var(--fg-3)", marginTop: 3, display: "block" }}>{booking.playersCount}</span>
-        </div>
         <div>
           <span style={{ fontFamily: "var(--f-mono)", fontSize: "10px", letterSpacing: "0.12em", textTransform: "uppercase" as const, color: "var(--fg-dim)", display: "block" }}>Total</span>
           <span style={{ fontSize: "13px", color: "var(--fg-3)", marginTop: 3, display: "block", fontVariantNumeric: "tabular-nums" }}>
@@ -280,7 +268,7 @@ export default function AccountBookingsSection({
             <StatePanel
               eyebrow="No active bookings"
               title="Your next booking will show up here"
-              text="Reserve a slot and it will appear here with date, type, payment status, and cancellation options."
+              text="Reserve a slot and it will appear here with its date, payment status, and cancellation options."
               className="rounded-[20px] p-5 shadow-none"
             />
           </div>

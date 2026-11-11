@@ -1,11 +1,16 @@
 import { auth } from "./auth";
 import { NextResponse } from "next/server";
+import { OPEN_GAMES_ENABLED } from "./lib/features";
 
 export default auth((req) => {
   const pathname = req.nextUrl.pathname;
   const isLoggedIn = !!req.auth;
   const isAdmin =
     !!req.auth?.user && (req.auth.user as { role?: string }).role === "admin";
+
+  if (pathname === "/games" && !OPEN_GAMES_ENABLED) {
+    return NextResponse.redirect(new URL("/book", req.nextUrl.origin));
+  }
 
   if (pathname.startsWith("/admin")) {
     if (!isLoggedIn || !isAdmin) {
@@ -17,5 +22,5 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ["/admin/:path*"],
+  matcher: ["/admin/:path*", "/games"],
 };

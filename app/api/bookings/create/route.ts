@@ -4,6 +4,7 @@ import { Prisma as PrismaClient } from "@prisma/client";
 import { auth } from "../../../../auth";
 import { getOpenGameCutoffTime } from "../../../../lib/open-game-cutoff";
 import { HOURLY_RATE } from "../../../../lib/pricing";
+import { OPEN_GAMES_ENABLED } from "../../../../lib/features";
 
 type IncomingSlot = {
   startHour: number;
@@ -92,10 +93,18 @@ export async function POST(req: Request) {
 
     const { name, phone, bookingDate, bookingType, playersCount, slots } =
       body;
+
+    if (!OPEN_GAMES_ENABLED && bookingType === "OPEN") {
+      return NextResponse.json(
+        { error: "Open games are temporarily unavailable" },
+        { status: 400 },
+      );
+    }
+
     const safeName = name?.trim() || "";
     const safePhone = phone?.trim() || "";
     const normalizedSlots = normalizeSlots(slots || []);
-    const safePlayersCount = Number(playersCount);
+    const safePlayersCount = bookingType === "PRIVATE" ? 10 : Number(playersCount);
     const expectedTotal = normalizedSlots.reduce(
       (sum) => sum + HOURLY_RATE,
       0,

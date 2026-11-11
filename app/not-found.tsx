@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Compass, MapPinned, SearchX } from "lucide-react";
+import { CalendarDays, MapPinned, SearchX } from "lucide-react";
 import Button from "@/components/ui/button";
 
 export default function NotFound() {
@@ -38,11 +38,6 @@ export default function NotFound() {
                       Book a Slot
                     </Button>
                   </Link>
-                  <Link href="/games">
-                    <Button variant="secondary" className="rounded-[999px]">
-                      Browse Games
-                    </Button>
-                  </Link>
                 </div>
               </div>
 
@@ -59,23 +54,22 @@ export default function NotFound() {
                       Check the URL if you typed it by hand.
                     </div>
                     <div className="rounded-[18px] border border-white/10 bg-white/[0.04] px-4 py-3">
-                      Use the main booking and games pages to find your next
-                      step quickly.
+                      Use the booking page to find an available time quickly.
                     </div>
                   </div>
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Link
-                    href="/games"
+                    href="/book"
                     className="rounded-[24px] border border-white/10 bg-white/[0.04] p-5 transition hover:border-white/14 hover:bg-white/[0.06]"
                   >
-                    <Compass size={20} className="text-[#B8FF3B]" />
+                    <CalendarDays size={20} className="text-[#B8FF3B]" />
                     <p className="mt-4 text-base font-medium text-white">
-                      View games
+                      Book futsal
                     </p>
                     <p className="mt-2 text-sm leading-7 text-[#94A3B8]">
-                      Check rates before booking.
+                      Choose a date and reserve an available time.
                     </p>
                   </Link>
 

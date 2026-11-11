@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { format } from "date-fns";
 import { useRouter } from "next/navigation";
-import { Lock, Users, ArrowRight, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { ArrowRight, ArrowLeft, CheckCircle2 } from "lucide-react";
 import FadeIn from "@/components/ui/fade-in";
 import { useSession } from "next-auth/react";
 import { getErrorMessage } from "@/lib/utils/error-message";
@@ -26,8 +26,7 @@ type Props = {
   };
 };
 
-const PRIVATE_GAME_PLAYERS = 10;
-const OPEN_GAME_DEFAULT_PLAYERS = 1;
+const BOOKING_PLAYERS = 10;
 
 /* ── small design helpers ────────────────────────────────────────── */
 
@@ -78,8 +77,6 @@ export default function BookingDetailsClient({
   const { data: session, status } = useSession();
   const [fullName, setFullName] = useState(initialUser?.name || "");
   const [phone, setPhone] = useState(initialUser?.phone || "");
-  const [gameType, setGameType] = useState<"private" | "open">("private");
-  const [playersCount, setPlayersCount] = useState(PRIVATE_GAME_PLAYERS);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [submitError, setSubmitError] = useState("");
@@ -108,7 +105,6 @@ export default function BookingDetailsClient({
   }
 
   const parsedDate = dateParam ? new Date(dateParam) : null;
-  const remainingPlayersNeeded = Math.max(0, 10 - playersCount);
   const trimmedFullName = fullName.trim();
   const trimmedPhone = phone.trim();
   const phoneInvalid = trimmedPhone.length > 0 && !/^[0-9+\-\s]{7,15}$/.test(trimmedPhone);
@@ -154,8 +150,8 @@ export default function BookingDetailsClient({
           name: trimmedFullName,
           phone: trimmedPhone,
           bookingDate: dateParam,
-          bookingType: gameType.toUpperCase(),
-          playersCount,
+          bookingType: "PRIVATE",
+          playersCount: BOOKING_PLAYERS,
           totalPrice: total,
           slots: formattedSlots,
         }),
@@ -231,7 +227,7 @@ export default function BookingDetailsClient({
               maxWidth: "44ch",
             }}
           >
-            Choose your game type and confirm your contact details.
+            Confirm your contact details to reserve the selected time.
           </p>
         </FadeIn>
 
@@ -319,150 +315,8 @@ export default function BookingDetailsClient({
           {/* ── LEFT: form ─────────────────────────────────────────── */}
           <div style={{ display: "flex", flexDirection: "column", gap: "3rem" }}>
 
-            {/* Game type */}
-            <FadeIn delay={0.06}>
-              <SectionDivider label="Game type" />
-              <p style={{ fontSize: "15px", color: "var(--fg-3)", lineHeight: 1.65, marginBottom: "1.5rem", maxWidth: "52ch" }}>
-                Private is your own squad only. Open lets other signed-in players join your slot until it fills.
-              </p>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {/* Private */}
-                <button
-                  type="button"
-                  onClick={() => { setGameType("private"); setPlayersCount(PRIVATE_GAME_PLAYERS); }}
-                  style={{
-                    padding: "1.25rem 1.375rem",
-                    border: `1px solid ${gameType === "private" ? "var(--accent)" : "var(--line)"}`,
-                    borderRadius: "20px",
-                    background: gameType === "private" ? "rgba(184,255,59,0.05)" : "var(--bg-soft)",
-                    textAlign: "left",
-                    cursor: "pointer",
-                    transition: "border-color .2s ease, background .2s ease",
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
-                    <Lock
-                      size={14}
-                      style={{ color: gameType === "private" ? "var(--accent)" : "var(--fg-dim)", flexShrink: 0 }}
-                    />
-                    <span style={{ fontSize: "14px", fontWeight: 600, color: "var(--fg)", letterSpacing: "-0.01em" }}>
-                      Private
-                    </span>
-                    {gameType === "private" && (
-                      <span style={{ marginLeft: "auto", width: 6, height: 6, borderRadius: "50%", background: "var(--accent)", flexShrink: 0 }} />
-                    )}
-                  </div>
-                  <p style={{ fontSize: "13px", color: "var(--fg-3)", lineHeight: 1.55, margin: 0 }}>
-                    Reserved for your group only.
-                  </p>
-                </button>
-
-                {/* Open */}
-                <button
-                  type="button"
-                  onClick={() => { setGameType("open"); setPlayersCount(OPEN_GAME_DEFAULT_PLAYERS); }}
-                  style={{
-                    padding: "1.25rem 1.375rem",
-                    border: `1px solid ${gameType === "open" ? "var(--accent)" : "var(--line)"}`,
-                    borderRadius: "20px",
-                    background: gameType === "open" ? "rgba(184,255,59,0.05)" : "var(--bg-soft)",
-                    textAlign: "left",
-                    cursor: "pointer",
-                    transition: "border-color .2s ease, background .2s ease",
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
-                    <Users
-                      size={14}
-                      style={{ color: gameType === "open" ? "var(--accent)" : "var(--fg-dim)", flexShrink: 0 }}
-                    />
-                    <span style={{ fontSize: "14px", fontWeight: 600, color: "var(--fg)", letterSpacing: "-0.01em" }}>
-                      Open
-                    </span>
-                    {gameType === "open" && (
-                      <span style={{ marginLeft: "auto", width: 6, height: 6, borderRadius: "50%", background: "var(--accent)", flexShrink: 0 }} />
-                    )}
-                  </div>
-                  <p style={{ fontSize: "13px", color: "var(--fg-3)", lineHeight: 1.55, margin: 0 }}>
-                    Others can join until it fills.
-                  </p>
-                </button>
-              </div>
-
-              {/* Players stepper — open game only */}
-              {gameType === "open" && (
-                <div
-                  style={{
-                    marginTop: "1.75rem",
-                    paddingTop: "1.75rem",
-                    borderTop: "1px solid var(--line)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    flexWrap: "wrap",
-                    gap: "1.25rem",
-                  }}
-                >
-                  <div>
-                    <p style={{ fontSize: "15px", fontWeight: 500, color: "var(--fg)" }}>
-                      Players you already have
-                    </p>
-                    <p style={{ fontSize: "13px", color: "var(--fg-3)", marginTop: 4, lineHeight: 1.5 }}>
-                      Need{" "}
-                      <strong style={{ color: "var(--fg)", fontWeight: 600 }}>
-                        {remainingPlayersNeeded}
-                      </strong>{" "}
-                      more to fill the game
-                    </p>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "1.25rem" }}>
-                    <button
-                      type="button"
-                      onClick={() => setPlayersCount((prev) => Math.max(1, prev - 1))}
-                      style={{
-                        width: 40, height: 40, borderRadius: "50%",
-                        border: "1px solid var(--line)", background: "transparent",
-                        color: "var(--fg)", fontSize: "20px", cursor: "pointer",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        transition: "border-color .2s",
-                      }}
-                    >
-                      −
-                    </button>
-                    <span
-                      style={{
-                        fontFamily: "var(--f-mono)",
-                        fontSize: "32px",
-                        fontWeight: 600,
-                        color: "var(--fg)",
-                        letterSpacing: "-0.04em",
-                        minWidth: "2ch",
-                        textAlign: "center",
-                        fontVariantNumeric: "tabular-nums",
-                      }}
-                    >
-                      {playersCount}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setPlayersCount((prev) => Math.min(10, prev + 1))}
-                      style={{
-                        width: 40, height: 40, borderRadius: "50%",
-                        border: "1px solid var(--line)", background: "transparent",
-                        color: "var(--fg)", fontSize: "20px", cursor: "pointer",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        transition: "border-color .2s",
-                      }}
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-              )}
-            </FadeIn>
-
             {/* Your details */}
-            <FadeIn delay={0.10}>
+            <FadeIn delay={0.06}>
               <SectionDivider label="Your details" />
               <div style={{ display: "flex", flexDirection: "column", gap: "1.375rem" }}>
                 <div>
@@ -614,31 +468,6 @@ export default function BookingDetailsClient({
                     No slots selected.
                   </p>
                 )}
-              </div>
-
-              {/* Game type */}
-              <div
-                style={{
-                  padding: "1.25rem 1.75rem",
-                  borderBottom: "1px solid var(--line)",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.75rem",
-                }}
-              >
-                {gameType === "private"
-                  ? <Lock size={13} style={{ color: "var(--fg-dim)", flexShrink: 0 }} />
-                  : <Users size={13} style={{ color: "var(--fg-dim)", flexShrink: 0 }} />}
-                <div>
-                  <p style={{ fontSize: "14px", fontWeight: 500, color: "var(--fg)", lineHeight: 1 }}>
-                    {gameType === "private" ? "Private game" : "Open game"}
-                  </p>
-                  <p style={{ fontSize: "12px", color: "var(--fg-dim)", marginTop: 4, lineHeight: 1.45 }}>
-                    {gameType === "private"
-                      ? "Reserved for your group only"
-                      : `${playersCount} confirmed · ${remainingPlayersNeeded} spots open`}
-                  </p>
-                </div>
               </div>
 
               {/* Total */}

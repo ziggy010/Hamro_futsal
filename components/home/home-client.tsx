@@ -24,7 +24,7 @@ const QUICK_SLOTS = [
 
 const STEPS = [
   { n: "01", label: "Pick your slot",    text: "Choose any available time. Every slot is NPR 1,200 per hour." },
-  { n: "02", label: "Reserve online",    text: "Lock the slot for your squad, or open it for other players to join. No payment yet." },
+  { n: "02", label: "Reserve online",    text: "Add your contact details and lock the selected time for your squad. No payment yet." },
   { n: "03", label: "Show up and play",  text: "Your slot is held. Pay on arrival at the venue — card or cash, your call." },
 ];
 
@@ -38,7 +38,7 @@ const MARQUEE_ITEMS = [
   <><span className="star">★</span> Bhaktapur · Nepal</>,
   <>Futsal &amp; café — est. 2024</>,
   <><span className="star">★</span> Daily 7 AM — 10 PM</>,
-  <>Open games every evening</>,
+  <>Book your preferred time online</>,
   <><span className="star">★</span> Floodlit pitch — clean turf</>,
   <>Pay at venue · NPR 1,200 / hr</>,
 ];
@@ -246,9 +246,6 @@ export default function HomeClient() {
                 <CalendarDays size={15} />
                 Book a slot
                 <span className="btn-icon-wrap"><ArrowRight size={13} /></span>
-              </Link>
-              <Link href="/games" className="btn btn-ghost btn-lg">
-                View games
               </Link>
             </div>
 

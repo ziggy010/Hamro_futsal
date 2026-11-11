@@ -15,7 +15,7 @@ const steps = [
   {
     number: 2,
     title: "Your Details",
-    description: "Choose game type and confirm",
+    description: "Add your contact details",
   },
   {
     number: 3,

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { format } from "date-fns";
-import { CheckCircle2, Lock, Users, ArrowRight, CalendarDays } from "lucide-react";
+import { CheckCircle2, ArrowRight, CalendarDays } from "lucide-react";
 import { redirect } from "next/navigation";
 import { prisma } from "../../../src/lib/prisma";
 import FadeIn from "@/components/ui/fade-in";
@@ -55,16 +55,12 @@ export default async function BookingSuccessPage({
     include: {
       user: true,
       slots: { orderBy: { startHour: "asc" } },
-      openGame: true,
     },
   });
 
   if (!booking) redirect("/book");
 
   const parsedDate = new Date(booking.bookingDate);
-  const gameType = booking.bookingType === "OPEN" ? "open" : "private";
-  const playersCount = booking.playersCount;
-  const remainingPlayersNeeded = Math.max(0, 10 - playersCount);
   const total = booking.totalPrice;
 
   const slots: Slot[] = booking.slots.map(
@@ -106,7 +102,7 @@ export default async function BookingSuccessPage({
               maxWidth: "18ch",
             }}
           >
-            {gameType === "private" ? "Your slot is booked." : "Your open game is live."}
+            Your slot is booked.
           </h1>
           <p
             style={{
@@ -117,9 +113,7 @@ export default async function BookingSuccessPage({
               maxWidth: "48ch",
             }}
           >
-            {gameType === "private"
-              ? "Payment is collected at the venue when you arrive. No action needed until then."
-              : "Other players can now join your slot until it reaches 10 players."}
+            Payment is collected at the venue when you arrive. No action needed until then.
           </p>
         </FadeIn>
 
@@ -240,9 +234,7 @@ export default async function BookingSuccessPage({
                       Booking confirmed
                     </p>
                     <p style={{ fontSize: "13px", color: "var(--fg-3)", marginTop: 2 }}>
-                      {gameType === "private"
-                        ? "Reserved for your group only."
-                        : "Now listed as an open game. Players can join."}
+                      Your selected time is reserved.
                     </p>
                   </div>
                 </div>
@@ -287,20 +279,6 @@ export default async function BookingSuccessPage({
                   )}
                 </div>
 
-                {/* Open game note */}
-                {gameType === "open" && (
-                  <div style={{ padding: "1.25rem 1.75rem", borderBottom: "1px solid var(--line)", display: "flex", gap: "0.75rem", alignItems: "flex-start" }}>
-                    <Users size={14} style={{ color: "var(--accent)", marginTop: 2, flexShrink: 0 }} />
-                    <div>
-                      <p style={{ fontSize: "14px", fontWeight: 500, color: "var(--fg)" }}>Open game created</p>
-                      <p style={{ fontSize: "13px", color: "var(--fg-3)", marginTop: 4, lineHeight: 1.55 }}>
-                        {playersCount} player{playersCount > 1 ? "s" : ""} confirmed,{" "}
-                        {remainingPlayersNeeded} spot{remainingPlayersNeeded !== 1 ? "s" : ""} remaining.
-                      </p>
-                    </div>
-                  </div>
-                )}
-
                 {/* What to expect */}
                 <div style={{ padding: "1.25rem 1.75rem" }}>
                   <RowLabel>What happens now</RowLabel>
@@ -308,7 +286,7 @@ export default async function BookingSuccessPage({
                     {[
                       "Your slot is already reserved for the selected time.",
                       "Payment is collected at the venue when you arrive.",
-                      gameType === "open" ? "Other players can join this game from the open games page." : "Show up a few minutes before your slot starts.",
+                      "Show up a few minutes before your slot starts.",
                     ].map((step, i) => (
                       <div key={i} style={{ display: "flex", gap: "0.75rem", alignItems: "baseline" }}>
                         <span style={{ fontFamily: "var(--f-mono)", fontSize: "10px", color: "var(--fg-faint)", flexShrink: 0, letterSpacing: "0.08em" }}>
@@ -327,8 +305,8 @@ export default async function BookingSuccessPage({
                   Book another slot
                   <span className="btn-icon-wrap"><ArrowRight size={13} /></span>
                 </Link>
-                <Link href={gameType === "open" ? "/games" : "/"} className="btn btn-ghost btn-lg">
-                  {gameType === "open" ? "View open games" : "Back to home"}
+                <Link href="/" className="btn btn-ghost btn-lg">
+                  Back to home
                 </Link>
               </div>
             </FadeIn>
@@ -348,23 +326,6 @@ export default async function BookingSuccessPage({
             >
               <div style={{ padding: "1.375rem 1.75rem", borderBottom: "1px solid var(--line)" }}>
                 <span className="eyebrow">Booking summary</span>
-              </div>
-
-              {/* Game type */}
-              <div style={{ padding: "1.25rem 1.75rem", borderBottom: "1px solid var(--line)", display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                {gameType === "private"
-                  ? <Lock size={13} style={{ color: "var(--fg-dim)", flexShrink: 0 }} />
-                  : <Users size={13} style={{ color: "var(--fg-dim)", flexShrink: 0 }} />}
-                <div>
-                  <p style={{ fontSize: "14px", fontWeight: 500, color: "var(--fg)" }}>
-                    {gameType === "private" ? "Private game" : "Open game"}
-                  </p>
-                  <p style={{ fontSize: "12px", color: "var(--fg-dim)", marginTop: 3 }}>
-                    {gameType === "private"
-                      ? "Reserved for your group only"
-                      : `${playersCount} confirmed · ${remainingPlayersNeeded} spots open`}
-                  </p>
-                </div>
               </div>
 
               {/* Slots */}

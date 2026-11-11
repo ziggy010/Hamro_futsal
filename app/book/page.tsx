@@ -195,7 +195,7 @@ export default function BookingPage() {
             Pick your date<br />and slot.
           </h1>
           <p style={{ marginTop: 24, fontSize: "clamp(15px,1.2vw,18px)", lineHeight: 1.6, color: "var(--fg-3)", maxWidth: "56ch" }}>
-            Start with your preferred time. Private or open game options come in the next step.
+            Choose your preferred time, then add your contact details to reserve it.
           </p>
         </FadeIn>
 
@@ -204,7 +204,7 @@ export default function BookingPage() {
           <div className="book-progress" style={{ marginTop: 40 }}>
             {[
               { n: "1", label: "Date & slot", active: true },
-              { n: "2", label: "Game details", active: false },
+              { n: "2", label: "Your details", active: false },
               { n: "3", label: "Confirm",      active: false },
             ].map((step) => (
               <div key={step.n} className="book-progress-step" data-active={step.active ? "true" : undefined}>
@@ -431,7 +431,7 @@ export default function BookingPage() {
                 <div style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "12px 14px", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 12, background: "rgba(255,255,255,0.02)" }}>
                   <Sparkles size={14} style={{ color: "var(--accent)", marginTop: 2, flexShrink: 0 }} />
                   <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: "var(--fg-3)" }}>
-                    No payment yet. Choose private or open game in the next step.
+                    No online payment. Your slot is reserved after you confirm your details.
                   </p>
                 </div>
               </div>
