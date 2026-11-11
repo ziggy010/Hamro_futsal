@@ -8,9 +8,20 @@ import { NavigationProgressProvider } from "@/components/layout/navigation-progr
 import Providers from "./providers";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://strikeyard.vercel.app"),
   title: "Strike Yard",
   description:
     "Book your game at Strike Yard in Bhaktapur-10, Bhaktapur. Simple, fast, and built for players.",
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: "Strike Yard",
+    description: "Book futsal and pickleball courts at Strike Yard in Bhaktapur.",
+    url: "/",
+    siteName: "Strike Yard",
+    type: "website",
+  },
 };
 
 export const viewport: Viewport = {

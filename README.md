@@ -1,26 +1,29 @@
 # Strike Yard Booking
 
-Premium futsal booking platform built with Next.js, NextAuth, Prisma, and PostgreSQL.
+Booking platform for Strike Yard's futsal and pickleball courts, built with Next.js, NextAuth, Prisma, and PostgreSQL.
+
+Production: [https://strikeyard.vercel.app](https://strikeyard.vercel.app)
 
 The app supports:
 - public futsal booking for 1 or 2 continuous hours
+- public booking for two independent pickleball courts
 - account signup and login
-- standard 10-player slot reservations
+- NPR 1,200 futsal and NPR 800 pickleball hourly pricing
 - user account management
-- admin booking, slot, and sales management
+- admin customer booking, slot, and sales management
 
 ## Project Overview
 
 This project is organized around a few core flows:
 
 - `Book a slot`
-  Users pick a date, choose an available time, add booking details, and confirm the reservation.
+  Users choose futsal or pickleball, pick a date and available time, add booking details, and confirm the reservation.
 
 - `Manage bookings`
   Users can view active bookings in their account and cancel eligible bookings before the lock window.
 
 - `Run venue operations from admin`
-  Admin can review bookings, mark payments as paid, block or unblock slots, and review sales.
+  Admin can create bookings for customers, manage futsal and both pickleball courts, mark payments as paid, block or unblock slots, and review sales.
 
 ## Tech Stack
 
@@ -61,7 +64,7 @@ Required for production auth:
 Recommended for deployed auth:
 
 - `AUTH_URL`
-  Public base URL of the deployed app. Example: `https://your-app.vercel.app`
+  Public base URL of the deployed app. Production value: `https://strikeyard.vercel.app`
 
 An example file is included at [.env.example](/Users/risabtajale/futsal-booking/.env.example).
 
@@ -168,7 +171,7 @@ Before deploying, make sure:
 
 - production database env vars are set
 - `AUTH_SECRET` is set
-- `AUTH_URL` points to the deployed domain
+- `AUTH_URL` is exactly `https://strikeyard.vercel.app`
 - admin credentials are configured
 - `npm run build` passes locally
 
