@@ -17,6 +17,7 @@ type BookingApi = {
     | "CANCELLED";
   bookingDate: string;
   totalPrice: number;
+  paidAmount?: number | null;
   createdAt: string;
   paymentStatus: "PENDING" | "PAID";
   user: { id: string; name: string; phone: string };
@@ -98,6 +99,7 @@ function MetaLabel({ children }: { children: React.ReactNode }) {
 
 const quickLinks = [
   { title: "Bookings", description: "Manage confirmations and customer details.", href: "/admin/bookings" },
+  { title: "Customers", description: "See booking frequency and lifetime spend.", href: "/admin/customers" },
   { title: "Slots", description: "Block time, reopen slots, review the schedule.", href: "/admin/slots" },
   { title: "Sales", description: "Collected revenue, pending payments, daily totals.", href: "/admin/sales" },
 ];
@@ -143,7 +145,7 @@ export default function AdminDashboard() {
 
   const todaysCollected = useMemo(() =>
     activeTodaysBookings.filter((b) => b.paymentStatus === "PAID")
-      .reduce((sum, b) => sum + b.totalPrice, 0), [activeTodaysBookings]);
+      .reduce((sum, b) => sum + (b.paidAmount ?? b.totalPrice), 0), [activeTodaysBookings]);
 
   const pendingPaymentsCount = useMemo(() =>
     activeTodaysBookings.filter((b) => b.paymentStatus === "PENDING").length, [activeTodaysBookings]);
@@ -151,7 +153,7 @@ export default function AdminDashboard() {
   const recentBookings = useMemo(() => [...bookings].slice(0, 6), [bookings]);
 
   const stats = [
-    { label: "Revenue today", value: `NPR ${todaysSales.toLocaleString()}` },
+    { label: "Booked value today", value: `NPR ${todaysSales.toLocaleString()}` },
     { label: "Collected today", value: `NPR ${todaysCollected.toLocaleString()}` },
     { label: "Active bookings", value: String(activeTodaysBookings.length) },
     { label: "Pending payments", value: String(pendingPaymentsCount) },
@@ -403,7 +405,7 @@ export default function AdminDashboard() {
                             </p>
                           </div>
                           <span style={{ fontFamily: "var(--f-mono)", fontSize: "13px", color: "var(--fg-3)", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
-                            NPR {booking.totalPrice.toLocaleString()}
+                            NPR {(booking.paymentStatus === "PAID" ? booking.paidAmount ?? booking.totalPrice : booking.totalPrice).toLocaleString()}
                           </span>
                         </div>
                       </div>

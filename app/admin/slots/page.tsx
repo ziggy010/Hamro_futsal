@@ -85,6 +85,7 @@ export default function AdminSlotsPage() {
   const [actionError, setActionError] = useState("");
   const [processingKey, setProcessingKey] = useState("");
   const [bookingSlot, setBookingSlot] = useState<SlotRow | null>(null);
+  const [bookingCounts, setBookingCounts] = useState<Record<string, number>>({});
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [paymentStatus, setPaymentStatus] = useState<"PENDING" | "PAID">("PENDING");
@@ -92,6 +93,23 @@ export default function AdminSlotsPage() {
 
   const weekDates = useMemo(() => Array.from({ length: 7 }).map((_, i) => addDays(new Date(), i)), []);
   const targetDate = useMemo(() => format(selectedDate, "yyyy-MM-dd"), [selectedDate]);
+
+  const fetchBookingCounts = useCallback(async () => {
+    try {
+      const params = new URLSearchParams({
+        from: format(weekDates[0], "yyyy-MM-dd"),
+        to: format(addDays(weekDates[weekDates.length - 1], 1), "yyyy-MM-dd"),
+      });
+      const response = await fetch(`/api/admin/booking-counts?${params.toString()}`, {
+        cache: "no-store",
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data?.error || "Failed to load booking counts");
+      setBookingCounts(data.counts || {});
+    } catch {
+      setBookingCounts({});
+    }
+  }, [weekDates]);
 
   const fetchSlots = useCallback(async () => {
     try {
@@ -154,6 +172,7 @@ export default function AdminSlotsPage() {
   }, [targetDate, activity, courtNumber, hourlyRate]);
 
   useEffect(() => { fetchSlots(); }, [fetchSlots]);
+  useEffect(() => { fetchBookingCounts(); }, [fetchBookingCounts]);
 
   const handleBlock = async (slot: SlotRow) => {
     try {
@@ -216,7 +235,7 @@ export default function AdminSlotsPage() {
       if (!res.ok) throw new Error(data?.error || "Failed to create booking");
       setActionMessage(`Booked ${bookingSlot.time} for ${customerName.trim()}.`);
       setBookingSlot(null);
-      await fetchSlots();
+      await Promise.all([fetchSlots(), fetchBookingCounts()]);
     } catch (err: unknown) {
       setActionError(getErrorMessage(err, "Error creating booking"));
     } finally {
@@ -259,7 +278,7 @@ export default function AdminSlotsPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Failed to cancel booking");
       setActionMessage("Booking cancelled and slot reopened.");
-      await fetchSlots();
+      await Promise.all([fetchSlots(), fetchBookingCounts()]);
     } catch (err: unknown) {
       setActionError(getErrorMessage(err, "Error cancelling booking"));
     } finally {
@@ -331,18 +350,24 @@ export default function AdminSlotsPage() {
         {/* ── DAY PICKER ──────────────────────────────────────────────── */}
         <div style={{ marginTop: "2rem", display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "0.5rem" }}>
           {weekDates.map((date) => {
-            const isActive = format(date, "yyyy-MM-dd") === format(selectedDate, "yyyy-MM-dd");
+            const dateKey = format(date, "yyyy-MM-dd");
+            const isActive = dateKey === format(selectedDate, "yyyy-MM-dd");
+            const bookingCount = bookingCounts[dateKey] || 0;
             return (
               <button
                 key={date.toISOString()}
                 type="button"
                 onClick={() => setSelectedDate(date)}
+                aria-label={`${format(date, "EEEE, MMMM d")}, ${bookingCount} booking${bookingCount === 1 ? "" : "s"}`}
+                title={`${bookingCount} booking${bookingCount === 1 ? "" : "s"} across all courts`}
                 style={{
+                  position: "relative",
                   borderRadius: "14px",
                   border: `1px solid ${isActive ? "var(--accent)" : "var(--line)"}`,
                   background: isActive ? "var(--accent)" : "var(--bg-soft)",
                   color: isActive ? "#000" : "var(--fg)",
                   padding: "0.625rem 0.25rem",
+                  minHeight: "64px",
                   cursor: "pointer",
                   transition: "all .15s",
                   textAlign: "center",
@@ -354,6 +379,34 @@ export default function AdminSlotsPage() {
                 <div style={{ fontSize: "18px", fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1.2, marginTop: "0.2rem" }}>
                   {format(date, "d")}
                 </div>
+                {bookingCount > 0 ? (
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      position: "absolute",
+                      top: "0.35rem",
+                      right: "0.35rem",
+                      minWidth: "20px",
+                      height: "20px",
+                      padding: "0 5px",
+                      borderRadius: "999px",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      border: isActive
+                        ? "1px solid rgba(0,0,0,0.2)"
+                        : "1px solid rgba(184,255,59,0.35)",
+                      background: isActive ? "rgba(0,0,0,0.14)" : "rgba(184,255,59,0.1)",
+                      color: isActive ? "#091006" : "var(--accent)",
+                      fontFamily: "var(--f-mono)",
+                      fontSize: "10px",
+                      fontWeight: 700,
+                      lineHeight: 1,
+                    }}
+                  >
+                    {bookingCount}
+                  </span>
+                ) : null}
               </button>
             );
           })}

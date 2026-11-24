@@ -69,6 +69,7 @@ model Booking {
   playersCount  Int
   paymentStatus PaymentStatus @default(PENDING)
   paidAt        DateTime?
+  paidAmount    Int?
   totalPrice    Int
   notes         String?
   createdAt     DateTime      @default(now())

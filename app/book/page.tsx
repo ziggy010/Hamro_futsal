@@ -313,7 +313,7 @@ export default function BookingPage() {
                       <span className="dot" style={{ background: "var(--accent)" }} />Selected
                     </span>
                     <span className="chip chip--danger">
-                      <span className="dot" style={{ background: "var(--danger)" }} />Unavailable
+                      <span className="dot" style={{ background: "var(--danger)" }} />Booked
                     </span>
                   </div>
                 </div>
@@ -385,7 +385,7 @@ export default function BookingPage() {
                             key={slot.time24}
                             type="button"
                             className="slot"
-                            aria-label={`${to12HourRange(slot.time24)}, ${isUnavailable ? "unavailable" : isSelected ? "selected" : "available"}`}
+                            aria-label={`${to12HourRange(slot.time24)}, ${isUnavailable ? "booked" : isSelected ? "selected" : "available"}`}
                             data-selected={isSelected ? "true" : undefined}
                             data-booked={isUnavailable ? "true" : undefined}
                             disabled={isUnavailable}
@@ -393,7 +393,7 @@ export default function BookingPage() {
                           >
                             <span className="slot-time">{to12HourStart(slot.time24)}</span>
                             <span className="slot-status">
-                              {isUnavailable ? "Unavailable" : isSelected ? "Selected" : "Available"}
+                              {isUnavailable ? "Booked" : isSelected ? "Selected" : "Available"}
                             </span>
                           </button>
                         );

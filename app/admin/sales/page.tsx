@@ -10,6 +10,7 @@ import { getErrorMessage } from "@/lib/utils/error-message";
 type Booking = {
   id: string;
   totalPrice: number;
+  paidAmount: number | null;
   createdAt: string;
   paymentStatus: "PENDING" | "PAID";
   user: { name: string };
@@ -52,6 +53,7 @@ function MetaLabel({ children }: { children: React.ReactNode }) {
 const quickLinks = [
   { label: "Dashboard", href: "/admin" },
   { label: "Bookings", href: "/admin/bookings" },
+  { label: "Customers", href: "/admin/customers" },
   { label: "Slots", href: "/admin/slots" },
 ];
 
@@ -81,7 +83,7 @@ export default function AdminSalesPage() {
   const pendingCount = useMemo(() => data?.bookings.filter((b) => b.paymentStatus === "PENDING").length ?? 0, [data]);
 
   const headerStats = [
-    { label: "Total revenue", value: `NPR ${(data?.totalRevenue ?? 0).toLocaleString()}` },
+    { label: "Booked value", value: `NPR ${(data?.totalRevenue ?? 0).toLocaleString()}` },
     { label: "Collected", value: `NPR ${(data?.collectedRevenue ?? 0).toLocaleString()}` },
     { label: "Pending", value: `NPR ${(data?.pendingRevenue ?? 0).toLocaleString()}` },
     { label: "Bookings", value: String(bookingCount) },
@@ -325,9 +327,16 @@ export default function AdminSalesPage() {
                             {new Date(booking.createdAt).toLocaleTimeString()}
                           </p>
                         </div>
-                        <span style={{ fontFamily: "var(--f-mono)", fontSize: "15px", fontWeight: 600, color: "var(--fg)", letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums" }}>
-                          NPR {booking.totalPrice.toLocaleString()}
-                        </span>
+                        <div style={{ textAlign: "right" }}>
+                          <span style={{ fontFamily: "var(--f-mono)", fontSize: "15px", fontWeight: 600, color: booking.paymentStatus === "PAID" ? "var(--accent)" : "var(--fg)", letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums", display: "block" }}>
+                            NPR {(booking.paymentStatus === "PAID" ? booking.paidAmount ?? booking.totalPrice : booking.totalPrice).toLocaleString()}
+                          </span>
+                          {booking.paymentStatus === "PAID" && booking.paidAmount !== null && booking.paidAmount !== booking.totalPrice ? (
+                            <span style={{ display: "block", marginTop: 3, fontSize: "11px", color: "var(--fg-dim)" }}>
+                              Booked at NPR {booking.totalPrice.toLocaleString()}
+                            </span>
+                          ) : null}
+                        </div>
                       </div>
                     ))
                   )}

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { CalendarDays, Phone, Search, User } from "lucide-react";
+import ModalShell from "@/components/ui/modal-shell";
 import StatePanel from "@/components/ui/state-panel";
 import { getErrorMessage } from "@/lib/utils/error-message";
 
@@ -17,6 +18,7 @@ type BookingApi = {
   bookingDate: string;
   paymentStatus: "PENDING" | "PAID";
   paidAt?: string | null;
+  paidAmount?: number | null;
   totalPrice: number;
   createdAt: string;
   user: { id: string; name: string; phone: string; email?: string | null };
@@ -75,9 +77,9 @@ function StatusBadge({ color, children }: { color: string; children: React.React
   return (
     <span
       style={{
-        fontSize: "11px",
-        fontWeight: 500,
-        padding: "3px 10px",
+        fontSize: "13px",
+        fontWeight: 600,
+        padding: "5px 12px",
         borderRadius: "999px",
         border: "1px solid rgba(255,255,255,0.1)",
         color,
@@ -100,6 +102,8 @@ export default function AdminBookingsPage() {
   const [search, setSearch] = useState("");
   const [showFinishedBookings, setShowFinishedBookings] = useState(false);
   const [dateFilter, setDateFilter] = useState<"ALL" | "TODAY">("ALL");
+  const [paymentBooking, setPaymentBooking] = useState<BookingApi | null>(null);
+  const [paymentAmount, setPaymentAmount] = useState("");
 
   const fetchBookings = async () => {
     try {
@@ -122,19 +126,34 @@ export default function AdminBookingsPage() {
     if (searchParam) setSearch(searchParam);
   }, [searchParams]);
 
-  const handleMarkPaid = async (bookingId: string) => {
+  const openPaymentDialog = (booking: BookingApi) => {
+    setActionError("");
+    setPaymentBooking(booking);
+    setPaymentAmount(String(booking.totalPrice));
+  };
+
+  const handleMarkPaid = async () => {
+    if (!paymentBooking) return;
+    const paidAmount = Number(paymentAmount);
+    if (!Number.isInteger(paidAmount) || paidAmount < 0) {
+      setActionError("Enter a valid amount paid.");
+      return;
+    }
+
     try {
-      setProcessingId(bookingId);
+      setProcessingId(paymentBooking.id);
       setActionError("");
       setActionMessage("");
       const res = await fetch("/api/bookings/mark-paid", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bookingId }),
+        body: JSON.stringify({ bookingId: paymentBooking.id, paidAmount }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Failed to mark paid");
-      setActionMessage("Booking marked as paid.");
+      setActionMessage(`Payment recorded: NPR ${paidAmount.toLocaleString()}.`);
+      setPaymentBooking(null);
+      setPaymentAmount("");
       await fetchBookings();
     } catch (err: unknown) {
       setActionError(getErrorMessage(err, "Error marking payment"));
@@ -217,13 +236,13 @@ export default function AdminBookingsPage() {
         style={{
           borderTop: "1px solid var(--line)",
           padding: "1.375rem 0",
-          opacity: past ? 0.6 : 1,
+          opacity: past ? 0.82 : 1,
         }}
       >
         {/* Top row */}
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap", marginBottom: "0.875rem" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
-            <p style={{ fontSize: "clamp(16px,1.8vw,20px)", fontWeight: 600, color: "var(--fg)", letterSpacing: "-0.03em" }}>
+            <p style={{ fontSize: "clamp(18px,1.8vw,22px)", fontWeight: 600, color: "var(--fg)", letterSpacing: "-0.03em" }}>
               {formatSlotRange(booking.slots)}
             </p>
             <StatusBadge color={statusColor(booking.status)}>{statusLabel(booking.status)}</StatusBadge>
@@ -236,24 +255,31 @@ export default function AdminBookingsPage() {
                 : "Futsal"}
             </StatusBadge>
           </div>
-          <span style={{ fontFamily: "var(--f-mono)", fontSize: "16px", fontWeight: 600, color: "var(--fg)", letterSpacing: "-0.03em", fontVariantNumeric: "tabular-nums" }}>
-            NPR {booking.totalPrice.toLocaleString()}
-          </span>
+          <div style={{ textAlign: "right" }}>
+            <span style={{ display: "block", fontFamily: "var(--f-mono)", fontSize: "18px", fontWeight: 600, color: booking.paymentStatus === "PAID" ? "var(--accent)" : "var(--fg)", letterSpacing: "-0.03em", fontVariantNumeric: "tabular-nums" }}>
+              NPR {(booking.paymentStatus === "PAID" ? booking.paidAmount ?? booking.totalPrice : booking.totalPrice).toLocaleString()}
+            </span>
+            {booking.paymentStatus === "PAID" && booking.paidAmount !== null && booking.paidAmount !== undefined && booking.paidAmount !== booking.totalPrice ? (
+              <span style={{ display: "block", marginTop: 3, fontSize: "11px", color: "var(--fg-dim)" }}>
+                Booked at NPR {booking.totalPrice.toLocaleString()}
+              </span>
+            ) : null}
+          </div>
         </div>
 
         {/* Contact row */}
         <div style={{ display: "flex", flexWrap: "wrap", gap: "1.25rem", marginBottom: "0.875rem" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "0.375rem" }}>
-            <User size={12} style={{ color: "var(--fg-dim)" }} />
-            <span style={{ fontSize: "13px", color: "var(--fg-3)" }}>{booking.user.name}</span>
+            <User size={14} style={{ color: "var(--fg-dim)" }} />
+            <span style={{ fontSize: "15px", color: "var(--fg-3)" }}>{booking.user.name}</span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "0.375rem" }}>
-            <Phone size={12} style={{ color: "var(--fg-dim)" }} />
-            <span style={{ fontSize: "13px", color: "var(--fg-3)" }}>{booking.user.phone}</span>
+            <Phone size={14} style={{ color: "var(--fg-dim)" }} />
+            <span style={{ fontSize: "15px", color: "var(--fg-3)" }}>{booking.user.phone}</span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "0.375rem" }}>
-            <CalendarDays size={12} style={{ color: "var(--fg-dim)" }} />
-            <span style={{ fontSize: "13px", color: "var(--fg-3)" }}>{formatDateLabel(booking.bookingDate)}</span>
+            <CalendarDays size={14} style={{ color: "var(--fg-dim)" }} />
+            <span style={{ fontSize: "15px", fontWeight: 500, color: "var(--fg-3)" }}>{formatDateLabel(booking.bookingDate)}</span>
           </div>
         </div>
 
@@ -270,7 +296,7 @@ export default function AdminBookingsPage() {
               {booking.paymentStatus === "PENDING" && canManage ? (
                 <button
                   className="btn btn-primary btn-sm"
-                  onClick={() => handleMarkPaid(booking.id)}
+                  onClick={() => openPaymentDialog(booking)}
                   disabled={processingId === booking.id}
                 >
                   {processingId === booking.id ? "Updating..." : "Mark paid"}
@@ -294,7 +320,7 @@ export default function AdminBookingsPage() {
           {past && booking.paymentStatus === "PENDING" && canManage && (
             <button
               className="btn btn-primary btn-sm"
-              onClick={() => handleMarkPaid(booking.id)}
+              onClick={() => openPaymentDialog(booking)}
               disabled={processingId === booking.id}
             >
               {processingId === booking.id ? "Updating..." : "Mark paid"}
@@ -511,6 +537,94 @@ export default function AdminBookingsPage() {
           )}
         </div>
       </section>
+
+      <ModalShell
+        open={!!paymentBooking}
+        onClose={() => {
+          if (!processingId) {
+            setPaymentBooking(null);
+            setPaymentAmount("");
+          }
+        }}
+        panelClassName="max-w-md"
+      >
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="payment-dialog-title"
+          className="overflow-hidden rounded-[24px] border border-white/10 bg-[#10161D] shadow-2xl"
+        >
+          <div className="border-b border-white/10 px-5 py-5 sm:px-6">
+            <span className="eyebrow">Record payment</span>
+            <h2 id="payment-dialog-title" className="mt-2 text-2xl font-semibold tracking-[-0.035em] text-white">
+              How much was paid?
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-[var(--fg-3)]">
+              Enter the final amount after any manual discount. Sales and customer lifetime spend will use this amount.
+            </p>
+          </div>
+
+          <div className="space-y-5 px-5 py-5 sm:px-6">
+            <div className="flex items-center justify-between gap-4 rounded-[14px] border border-white/10 bg-white/[0.025] px-4 py-3">
+              <span className="text-sm text-[var(--fg-3)]">Original booking price</span>
+              <span className="font-mono text-sm font-semibold text-white tabular-nums">
+                NPR {(paymentBooking?.totalPrice ?? 0).toLocaleString()}
+              </span>
+            </div>
+
+            <label className="block">
+              <span className="mb-2 block text-sm text-[var(--fg-3)]">Final amount paid</span>
+              <div className="flex items-center rounded-[14px] border border-white/10 bg-[#0B0F14] px-4 transition focus-within:border-[var(--accent)]">
+                <span className="font-mono text-sm text-[var(--fg-dim)]">NPR</span>
+                <input
+                  autoFocus
+                  type="number"
+                  min="0"
+                  max="1000000"
+                  step="1"
+                  inputMode="numeric"
+                  value={paymentAmount}
+                  onChange={(event) => setPaymentAmount(event.target.value)}
+                  className="min-w-0 flex-1 bg-transparent px-3 py-3.5 font-mono text-lg font-semibold text-white outline-none tabular-nums"
+                />
+              </div>
+            </label>
+
+            {paymentBooking && Number(paymentAmount) < paymentBooking.totalPrice && Number(paymentAmount) >= 0 ? (
+              <p className="text-xs text-[var(--accent)]">
+                Discount recorded: NPR {(paymentBooking.totalPrice - Number(paymentAmount)).toLocaleString()}
+              </p>
+            ) : null}
+            {actionError && paymentBooking ? (
+              <p className="rounded-xl border border-red-400/20 bg-red-400/[0.05] px-3 py-2.5 text-xs text-red-300">
+                {actionError}
+              </p>
+            ) : null}
+          </div>
+
+          <div className="flex flex-col-reverse gap-3 border-t border-white/10 px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
+            <button
+              type="button"
+              className="btn btn-ghost"
+              disabled={!!processingId}
+              onClick={() => {
+                setPaymentBooking(null);
+                setPaymentAmount("");
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={!!processingId || paymentAmount === "" || Number(paymentAmount) < 0}
+              onClick={handleMarkPaid}
+            >
+              {processingId ? "Recording..." : "Confirm payment"}
+            </button>
+          </div>
+        </div>
+      </ModalShell>
     </main>
   );
 }

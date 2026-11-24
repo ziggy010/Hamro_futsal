@@ -11,10 +11,18 @@ export async function POST(req: Request) {
     await requireAdmin();
     const body = await req.json();
     const { bookingId } = body;
+    const paidAmount = Number(body.paidAmount);
 
     if (!bookingId) {
       return NextResponse.json(
         { error: "bookingId is required" },
+        { status: 400 },
+      );
+    }
+
+    if (!Number.isInteger(paidAmount) || paidAmount < 0 || paidAmount > 1_000_000) {
+      return NextResponse.json(
+        { error: "Enter a valid paid amount between NPR 0 and NPR 1,000,000" },
         { status: 400 },
       );
     }
@@ -49,6 +57,7 @@ export async function POST(req: Request) {
       data: {
         paymentStatus: "PAID",
         paidAt: new Date(),
+        paidAmount,
       },
     });
 

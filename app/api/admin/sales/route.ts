@@ -57,19 +57,34 @@ export async function GET(req: Request) {
 
     const collectedRevenue = bookings
       .filter((b: BookingItem) => b.paymentStatus === "PAID")
-      .reduce((sum: number, b: BookingItem) => sum + b.totalPrice, 0);
+      .reduce(
+        (sum: number, b: BookingItem) => sum + (b.paidAmount ?? b.totalPrice),
+        0,
+      );
 
     const pendingRevenue = bookings
       .filter((b: BookingItem) => b.paymentStatus === "PENDING")
       .reduce((sum: number, b: BookingItem) => sum + b.totalPrice, 0);
 
     const privateRevenue = bookings
-      .filter((b: BookingItem) => b.bookingType === "PRIVATE")
-      .reduce((sum: number, b: BookingItem) => sum + b.totalPrice, 0);
+      .filter(
+        (b: BookingItem) =>
+          b.bookingType === "PRIVATE" && b.paymentStatus === "PAID",
+      )
+      .reduce(
+        (sum: number, b: BookingItem) => sum + (b.paidAmount ?? b.totalPrice),
+        0,
+      );
 
     const openRevenue = bookings
-      .filter((b: BookingItem) => b.bookingType === "OPEN")
-      .reduce((sum: number, b: BookingItem) => sum + b.totalPrice, 0);
+      .filter(
+        (b: BookingItem) =>
+          b.bookingType === "OPEN" && b.paymentStatus === "PAID",
+      )
+      .reduce(
+        (sum: number, b: BookingItem) => sum + (b.paidAmount ?? b.totalPrice),
+        0,
+      );
 
     return NextResponse.json({
       success: true,

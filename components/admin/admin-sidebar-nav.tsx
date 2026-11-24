@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   ReceiptText,
   ShieldCheck,
+  UsersRound,
 } from "lucide-react";
 
 const adminLinks = [
@@ -21,6 +22,12 @@ const adminLinks = [
     description: "Reservations and payments",
     href: "/admin/bookings",
     icon: CalendarClock,
+  },
+  {
+    title: "Customers",
+    description: "Visits and lifetime spend",
+    href: "/admin/customers",
+    icon: UsersRound,
   },
   {
     title: "Slots",

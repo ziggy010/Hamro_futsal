@@ -109,6 +109,7 @@ export async function POST(req: Request) {
           playersCount: activity === "PICKLEBALL" ? 4 : 10,
           paymentStatus,
           paidAt: paymentStatus === "PAID" ? new Date() : null,
+          paidAmount: paymentStatus === "PAID" ? hourlyRate : null,
           totalPrice: hourlyRate,
           notes: "Created by venue admin",
           slots: {
