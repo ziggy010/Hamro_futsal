@@ -170,7 +170,7 @@ export default function ContactPage() {
 
               <div style={{ marginTop: "2rem" }}>
                 <a
-                  href="https://maps.app.goo.gl/45BRKeN9GAdt9act7"
+                  href="https://maps.app.goo.gl/56bzcsrhmnG6V39f6"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -224,7 +224,7 @@ export default function ContactPage() {
                 color: "var(--fg-dim)",
               }}
             >
-              27.682864° N · 85.439142° E
+              27.6828283° N · 85.439147° E
             </span>
           </div>
         </FadeIn>
@@ -358,12 +358,12 @@ export default function ContactPage() {
                   gap: "0 1.5rem",
                 }}
               >
-                <span>LAT 27.682864° N</span>
-                <span>LNG 85.439142° E</span>
+                <span>LAT 27.6828283° N</span>
+                <span>LNG 85.439147° E</span>
                 <span>ELEV 1,401 m</span>
               </div>
               <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
-                <a href="https://maps.app.goo.gl/45BRKeN9GAdt9act7" target="_blank" rel="noreferrer">
+                <a href="https://maps.app.goo.gl/56bzcsrhmnG6V39f6" target="_blank" rel="noreferrer">
                   <button className="btn btn-ghost">Open in Maps</button>
                 </a>
                 <a href="tel:9813110577">

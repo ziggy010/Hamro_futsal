@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Mail, Phone, User2 } from "lucide-react";
-import { useSession } from "next-auth/react";
+import { LogOut, Mail, Phone, User2 } from "lucide-react";
+import { signOut, useSession } from "next-auth/react";
 import { getErrorMessage } from "@/lib/utils/error-message";
 
 type Props = {
@@ -55,6 +55,7 @@ export default function AccountProfileCard({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [signingOut, setSigningOut] = useState(false);
 
   const handleCancel = () => {
     setName(initialName);
@@ -191,6 +192,21 @@ export default function AccountProfileCard({
             </p>
           )}
         </div>
+      </div>
+
+      <div className="border-t border-[var(--line)] px-7 py-4 md:hidden">
+        <button
+          type="button"
+          disabled={signingOut}
+          onClick={async () => {
+            setSigningOut(true);
+            await signOut({ callbackUrl: "/" });
+          }}
+          className="flex w-full items-center justify-center gap-2 rounded-[14px] border border-red-300/15 bg-red-300/[0.04] px-4 py-3 text-sm font-medium text-red-200 transition active:scale-[0.98] disabled:opacity-60"
+        >
+          <LogOut size={15} />
+          {signingOut ? "Signing out..." : "Sign out"}
+        </button>
       </div>
 
       {/* Feedback */}

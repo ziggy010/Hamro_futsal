@@ -4,8 +4,7 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Menu, X, ChevronDown, User, CalendarDays, LogOut } from "lucide-react";
-import Button from "@/components/ui/button";
+import { ChevronDown, User, CalendarDays, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useNavigationProgress } from "@/components/layout/navigation-progress";
 import Image from "next/image";
@@ -20,7 +19,6 @@ const links = [
 
 export default function Navbar() {
   const { data: session, status } = useSession();
-  const [open, setOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -50,7 +48,6 @@ export default function Navbar() {
   };
 
   useEffect(() => {
-    setOpen(false);
     setAccountOpen(false);
   }, [pathname]);
 
@@ -75,7 +72,6 @@ export default function Navbar() {
   const handleSignOut = async () => {
     try {
       setAccountOpen(false);
-      setOpen(false);
       setIsSigningOut(true);
       startLoading();
       await signOut({ callbackUrl: "/" });
@@ -263,146 +259,7 @@ export default function Navbar() {
               )}
             </div>
 
-            <button
-              type="button"
-              aria-label={open ? "Close menu" : "Open menu"}
-              aria-expanded={open}
-              onClick={() => setOpen((prev) => !prev)}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[16px] border border-white/10 bg-white/[0.05] text-white transition hover:bg-white/[0.08] md:hidden"
-            >
-              {open ? <X size={20} /> : <Menu size={20} />}
-            </button>
           </div>
-
-          <AnimatePresence initial={false}>
-            {open && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-                className="overflow-hidden border-t border-white/10 md:hidden"
-              >
-                <motion.div
-                  initial={{ y: -10, opacity: 0, filter: "blur(6px)" }}
-                  animate={{ y: 0, opacity: 1, filter: "blur(0px)" }}
-                  exit={{ y: -8, opacity: 0, filter: "blur(4px)" }}
-                  transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-                  className="px-3 pb-3 pt-3 sm:px-4 sm:pb-4"
-                >
-                  <div className="space-y-2">
-                    {links.map((link) => {
-                      const active = isActive(link.href);
-
-                      return (
-                        <Link
-                          key={link.href}
-                          href={link.href}
-                          onClick={() => {
-                            setOpen(false);
-                            if (!active) startLoading();
-                          }}
-                          className={cn(
-                            "block rounded-[20px] px-4 py-3 text-sm transition-all duration-300",
-                            active
-                              ? "border border-[#4A7010] bg-[#1D2A0D] text-[#B8FF3B]"
-                              : "border border-white/10 bg-white/[0.04] text-[#D7DEE7] hover:bg-white/[0.07]",
-                          )}
-                        >
-                          {link.label}
-                        </Link>
-                      );
-                    })}
-                  </div>
-
-                  <div className="mt-4 space-y-2">
-                    {status === "loading" ? (
-                      <div className="rounded-[20px] border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white">
-                        Loading...
-                      </div>
-                    ) : session?.user ? (
-                      <>
-                        <div className="rounded-[20px] border border-white/10 bg-white/[0.04] px-4 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="relative flex h-11 w-11 items-center justify-center rounded-full border border-[#B8FF3B]/20 bg-[linear-gradient(135deg,rgba(184,255,59,0.22),rgba(184,255,59,0.08))] text-sm font-semibold text-[#DFFF9A] shadow-[0_8px_24px_rgba(184,255,59,0.18)]">
-                              <span>{avatarLetter}</span>
-                              <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border border-[#0B0F14] bg-[#B8FF3B]" />
-                            </div>
-
-                            <div className="min-w-0">
-                              <p className="truncate text-sm font-medium text-white">
-                                {displayName}
-                              </p>
-                              <p className="mt-1 truncate text-xs text-[#94A3B8]">
-                                {session.user.email}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-
-                        <Link
-                          href="/account"
-                          onClick={() => {
-                            setOpen(false);
-                            if (!isActive("/account")) startLoading();
-                          }}
-                          className="block rounded-[20px] border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white transition hover:bg-white/[0.07]"
-                        >
-                          My Account
-                        </Link>
-
-                        <Link
-                          href="/book"
-                          onClick={() => {
-                            setOpen(false);
-                            if (!isActive("/book")) startLoading();
-                          }}
-                        >
-                          <Button className="w-full rounded-full py-3 shadow-[0_14px_34px_rgba(184,255,59,0.20)] !text-black">
-                            Book a Slot
-                          </Button>
-                        </Link>
-
-                        <button
-                          type="button"
-                          onClick={handleSignOut}
-                          disabled={isSigningOut}
-                          className="block w-full rounded-[20px] border border-white/10 bg-white/[0.04] px-4 py-3 text-left text-sm text-[#FFB4B4] transition hover:bg-white/[0.07]"
-                        >
-                          {isSigningOut ? "Logging out..." : "Logout"}
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <Link
-                          href={`/login${authHref}`}
-                          onClick={() => {
-                            setOpen(false);
-                            startLoading();
-                          }}
-                          className="block rounded-[20px] border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white transition hover:bg-white/[0.07]"
-                        >
-                          Login
-                        </Link>
-
-                        <Link
-                          href={`/signup${authHref}`}
-                          onClick={() => {
-                            setOpen(false);
-                            startLoading();
-                          }}
-                        >
-                          <Button className="w-full rounded-full py-3 shadow-[0_14px_34px_rgba(184,255,59,0.20)] !text-black">
-                            Sign Up
-                          </Button>
-                        </Link>
-                      </>
-                    )}
-                  </div>
-                </motion.div>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
       </div>
     </header>

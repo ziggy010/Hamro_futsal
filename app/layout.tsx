@@ -4,6 +4,7 @@ import "./globals.css";
 import AmbientBackdrop from "@/components/layout/ambient-backdrop";
 import Navbar from "@/components/layout/navbar";
 import Footer from "@/components/layout/footer";
+import MobileBottomNav from "@/components/layout/mobile-bottom-nav";
 import { NavigationProgressProvider } from "@/components/layout/navigation-progress";
 import Providers from "./providers";
 
@@ -57,17 +58,20 @@ export default function RootLayout({
       <body className="bg-[#0B0F14] text-white antialiased">
         <NavigationProgressProvider>
           <AmbientBackdrop />
-          <div className="flex min-h-screen flex-col">
-            <div className="flex-1">
-              <Providers>
+          <Providers>
+            <div className="flex min-h-screen flex-col">
+              <div className="flex-1">
                 <Suspense fallback={<NavbarFallback />}>
                   <Navbar />
                 </Suspense>
                 {children}
-              </Providers>
+              </div>
+              <Footer />
+              <Suspense fallback={null}>
+                <MobileBottomNav />
+              </Suspense>
             </div>
-            <Footer />
-          </div>
+          </Providers>
         </NavigationProgressProvider>
       </body>
     </html>

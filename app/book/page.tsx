@@ -487,7 +487,7 @@ export default function BookingPage() {
 
       {/* ── MOBILE STICKY CTA ───────────────────────────────────────── */}
       {selectedSlots.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/10 bg-[#08090c]/90 backdrop-blur-xl lg:hidden">
+        <div className="fixed bottom-[calc(76px+env(safe-area-inset-bottom))] left-0 right-0 z-40 border-t border-white/10 bg-[#08090c]/90 backdrop-blur-xl lg:hidden">
           <div className="container flex items-center justify-between gap-4 py-4">
             <div>
               <p style={{ fontFamily: "var(--f-mono)", fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--fg-dim)", margin: 0 }}>
