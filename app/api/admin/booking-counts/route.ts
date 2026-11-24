@@ -21,12 +21,24 @@ function formatDateKey(date: Date) {
   return `${year}-${month}-${day}`;
 }
 
+function getActivity(value: string | null) {
+  return value === "PICKLEBALL" ? "PICKLEBALL" : "FUTSAL";
+}
+
+function getCourtNumber(value: string | null, activity: "FUTSAL" | "PICKLEBALL") {
+  const court = Number(value);
+  if (activity === "PICKLEBALL" && (court === 1 || court === 2)) return court;
+  return 1;
+}
+
 export async function GET(req: Request) {
   try {
     await requireAdmin();
     const { searchParams } = new URL(req.url);
     const from = parseDate(searchParams.get("from"));
     const to = parseDate(searchParams.get("to"));
+    const activity = getActivity(searchParams.get("activity"));
+    const courtNumber = getCourtNumber(searchParams.get("court"), activity);
 
     if (!from || !to || to <= from) {
       return NextResponse.json(
@@ -42,6 +54,9 @@ export async function GET(req: Request) {
         status: {
           in: ["PRIVATE_CONFIRMED", "OPEN_PENDING_FILL", "OPEN_CONFIRMED"],
         },
+        slots: {
+          some: { activity, courtNumber },
+        },
       },
       _count: { id: true },
       orderBy: { bookingDate: "asc" },
@@ -56,7 +71,7 @@ export async function GET(req: Request) {
       {},
     );
 
-    return NextResponse.json({ success: true, counts });
+    return NextResponse.json({ success: true, counts, activity, courtNumber });
   } catch (error: unknown) {
     if (isUnauthorizedError(error)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

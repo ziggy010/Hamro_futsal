@@ -99,6 +99,8 @@ export default function AdminSlotsPage() {
       const params = new URLSearchParams({
         from: format(weekDates[0], "yyyy-MM-dd"),
         to: format(addDays(weekDates[weekDates.length - 1], 1), "yyyy-MM-dd"),
+        activity,
+        court: String(courtNumber),
       });
       const response = await fetch(`/api/admin/booking-counts?${params.toString()}`, {
         cache: "no-store",
@@ -109,7 +111,7 @@ export default function AdminSlotsPage() {
     } catch {
       setBookingCounts({});
     }
-  }, [weekDates]);
+  }, [weekDates, activity, courtNumber]);
 
   const fetchSlots = useCallback(async () => {
     try {
@@ -333,6 +335,7 @@ export default function AdminSlotsPage() {
                   key={`${option.activity}-${option.court}`}
                   type="button"
                   onClick={() => {
+                    setBookingCounts({});
                     setActivity(option.activity);
                     setCourtNumber(option.court);
                     setActionMessage("");
@@ -359,7 +362,7 @@ export default function AdminSlotsPage() {
                 type="button"
                 onClick={() => setSelectedDate(date)}
                 aria-label={`${format(date, "EEEE, MMMM d")}, ${bookingCount} booking${bookingCount === 1 ? "" : "s"}`}
-                title={`${bookingCount} booking${bookingCount === 1 ? "" : "s"} across all courts`}
+                title={`${bookingCount} booking${bookingCount === 1 ? "" : "s"} for this court`}
                 style={{
                   position: "relative",
                   borderRadius: "14px",
