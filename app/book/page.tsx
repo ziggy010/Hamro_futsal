@@ -8,7 +8,6 @@ import Button from "@/components/ui/button";
 import FadeIn from "@/components/ui/fade-in";
 import StatePanel from "@/components/ui/state-panel";
 import { getHourlyRate, type ActivityType } from "@/lib/pricing";
-import { getErrorMessage } from "@/lib/utils/error-message";
 
 type Slot = {
   time24: string;
@@ -101,20 +100,21 @@ export default function BookingPage() {
   const [slots, setSlots] = useState<Slot[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(true);
   const [slotsError, setSlotsError] = useState("");
+  const [retryKey, setRetryKey] = useState(0);
 
   const dates = useMemo(
     () => Array.from({ length: 7 }).map((_, i) => addDays(new Date(), i)),
     [],
   );
 
-  const fetchSlotsForDate = useEffectEvent(async (date: Date) => {
+  const fetchSlotsForDate = useEffectEvent(async (date: Date, signal: AbortSignal) => {
     const dateKey = format(date, "yyyy-MM-dd");
     const params = new URLSearchParams({
       date: dateKey,
       activity,
       court: String(courtNumber),
     });
-    const res = await fetch(`/api/slots?${params.toString()}`, { cache: "no-store" });
+    const res = await fetch(`/api/slots?${params.toString()}`, { cache: "no-store", signal });
     const data = await res.json();
     if (!res.ok) throw new Error(data?.error || "Failed to load slots");
     return buildSlotsFromApi(
@@ -125,10 +125,16 @@ export default function BookingPage() {
   });
 
   useEffect(() => {
+    let stopped = false;
+    let inFlight = false;
+    const controller = new AbortController();
     const load = async (resetSelection = true) => {
+      if (inFlight || document.hidden) return;
+      inFlight = true;
       try {
+        const fetched = await fetchSlotsForDate(selectedDate, controller.signal);
+        if (stopped) return;
         setSlotsError("");
-        const fetched = await fetchSlotsForDate(selectedDate);
         setSlots(fetched);
         if (resetSelection) {
           setSelectedSlots([]);
@@ -138,17 +144,29 @@ export default function BookingPage() {
           );
         }
       } catch (error: unknown) {
-        setSlotsError(getErrorMessage(error, "Failed to load slots"));
+        if (stopped) return;
+        console.error("Slot availability request failed", error);
+        setSlotsError("Availability is temporarily unavailable. Please try again shortly.");
         setSlots([]);
+        setSelectedSlots([]);
       } finally {
-        setLoadingSlots(false);
+        inFlight = false;
+        if (!stopped) setLoadingSlots(false);
       }
     };
     setLoadingSlots(true);
+    setSlotsError("");
     load(true);
-    const interval = setInterval(() => load(false), 10_000);
-    return () => clearInterval(interval);
-  }, [selectedDate, activity, courtNumber, hourlyRate]);
+    const interval = setInterval(() => load(false), 30_000);
+    const onVisible = () => { if (!document.hidden) load(false); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      stopped = true;
+      controller.abort();
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [selectedDate, activity, courtNumber, hourlyRate, retryKey]);
 
   const toggleSlot = (slot: Slot) => {
     if (slot.status !== "available") return;
@@ -333,7 +351,7 @@ export default function BookingPage() {
                             setLoadingSlots(true);
                             setSlotsError("");
                             setSelectedSlots([]);
-                            setSelectedDate(new Date(selectedDate));
+                            setRetryKey((key) => key + 1);
                           }}
                         >
                           Try Again
@@ -366,7 +384,7 @@ export default function BookingPage() {
                         className="rounded-[20px] p-4 shadow-none"
                       />
                     </div>
-                  ) : slots.length === 0 ? (
+                  ) : slotsError ? null : slots.length === 0 ? (
                     <div className="slot-board-state">
                       <StatePanel
                         title="No times left today"

@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, CalendarDays } from "lucide-react";
+import { ArrowRight, CalendarDays, Pause, Play } from "lucide-react";
+import { useReducedMotion } from "framer-motion";
 import FadeIn from "@/components/ui/fade-in";
 
 /* ── static data ─────────────────────────────────────────────────── */
@@ -14,12 +15,6 @@ const FEATURES = [
   { n: "02", label: "Beer garden", x: 76, y: 70 },
   { n: "03", label: "Pickleball", x: 29, y: 80 },
   { n: "04", label: "Garden Lounge", x: 70, y: 39 },
-];
-
-const QUICK_SLOTS = [
-  { time: "7 PM", meta: "NPR 1,200", taken: false },
-  { time: "8 PM", meta: "NPR 1,200", taken: false },
-  { time: "9 PM", meta: "NPR 1,200", taken: true  },
 ];
 
 const STEPS = [
@@ -43,38 +38,21 @@ const MARQUEE_ITEMS = [
   <>Pay at venue · Rates from NPR 800 / hr</>,
 ];
 
-/* ── count-up hook ───────────────────────────────────────────────── */
-function useCountUp(target: number, frames = 60) {
-  const [value, setValue] = useState(0);
-  useEffect(() => {
-    let f = 0;
-    const tick = () => {
-      f++;
-      const eased = 1 - Math.pow(1 - Math.min(1, f / frames), 3);
-      setValue(Math.round(target * eased));
-      if (f < frames) requestAnimationFrame(tick);
-    };
-    const id = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(id);
-  }, [target, frames]);
-  return value;
-}
-
 /* ── firefly seed helper ─────────────────────────────────────────── */
 function seedRand(i: number) {
   return (i * 9301 + 49297) % 233280;
 }
 
 /* ── AerialMonitor ───────────────────────────────────────────────── */
-function AerialMonitor() {
+function AerialMonitor({ motionPaused }: { motionPaused: boolean }) {
   const [active, setActive] = useState(0);
   const [auto, setAuto] = useState(true);
 
   useEffect(() => {
-    if (!auto) return;
+    if (!auto || motionPaused) return;
     const id = setInterval(() => setActive((i) => (i + 1) % FEATURES.length), 3200);
     return () => clearInterval(id);
-  }, [auto]);
+  }, [auto, motionPaused]);
 
   const fireflies = useMemo(
     () =>
@@ -165,21 +143,14 @@ function AerialMonitor() {
 
         <div className="hero-aerial-quickbook">
           <div className="hero-aerial-qb-head">
-            <span><b>Futsal tonight</b> · 5 PM – 10 PM</span>
+            <span><b>Futsal</b> · Daily 6 AM – 10 PM</span>
             <span className="hero-aerial-qb-peak">NPR 1,200 / HR</span>
           </div>
           <div className="hero-aerial-qb-slots">
-            {QUICK_SLOTS.map((s) => (
-              <Link
-                key={s.time}
-                href={s.taken ? "#" : "/book"}
-                className={`hero-aerial-qb-slot${s.taken ? " taken" : ""}`}
-                aria-disabled={s.taken}
-              >
-                <span className="t">{s.time}</span>
-                <span className="m">{s.taken ? "Taken" : s.meta}</span>
-              </Link>
-            ))}
+            <Link href="/book" className="hero-aerial-qb-slot">
+              <span className="t">Choose a time</span>
+              <span className="m">See current availability <ArrowRight size={12} /></span>
+            </Link>
           </div>
         </div>
       </div>
@@ -189,23 +160,23 @@ function AerialMonitor() {
 
 /* ── main component ──────────────────────────────────────────────── */
 export default function HomeClient() {
+  const reducedMotion = useReducedMotion();
+  const [motionPaused, setMotionPaused] = useState(false);
+  const isPaused = motionPaused || !!reducedMotion;
   /* rotating word */
   const [wordIdx, setWordIdx] = useState(0);
   useEffect(() => {
+    if (isPaused) return;
     const id = setInterval(() => setWordIdx((i) => (i + 1) % ROTATE_WORDS.length), 2800);
     return () => clearInterval(id);
-  }, []);
+  }, [isPaused]);
   const longestWord = ROTATE_WORDS.reduce((a, b) => (b.length > a.length ? b : a));
-
-  /* count-up stats */
-  const openCount     = useCountUp(7);
-  const bookingsToday = useCountUp(24);
 
   return (
     <main>
 
       {/* ── ALMANAC HERO ───────────────────────────────────────────── */}
-      <section className="home-hero">
+      <section className={`home-hero${isPaused ? " motion-paused" : ""}`}>
 
         {/* almanac grid: left editorial + right aerial */}
         <div className="container hero-almanac-grid">
@@ -250,14 +221,25 @@ export default function HomeClient() {
               </Link>
             </div>
 
+            {!reducedMotion && <button
+              type="button"
+              className="hero-motion-toggle"
+              onClick={() => setMotionPaused((paused) => !paused)}
+              aria-label={motionPaused ? "Play homepage animations" : "Pause homepage animations"}
+              aria-pressed={motionPaused}
+            >
+              {motionPaused ? <Play size={13} /> : <Pause size={13} />}
+              {motionPaused ? "Play motion" : "Pause motion"}
+            </button>}
+
             <dl className="hero-stats">
               <div className="hero-stat">
-                <dt>Open slots</dt>
-                <dd><b>{openCount}</b><span> / 16</span></dd>
+                <dt>Open daily</dt>
+                <dd><b>6 AM</b><span> – 10 PM</span></dd>
               </div>
               <div className="hero-stat">
-                <dt>Booked today</dt>
-                <dd><b>{bookingsToday}</b></dd>
+                <dt>Pickleball</dt>
+                <dd><b>2</b><span> courts</span></dd>
               </div>
               <div className="hero-stat">
                 <dt>From / hr</dt>
@@ -267,7 +249,7 @@ export default function HomeClient() {
           </div>
 
           {/* right: aerial monitor */}
-          <AerialMonitor />
+          <AerialMonitor motionPaused={isPaused} />
         </div>
 
         {/* ambient marquee */}

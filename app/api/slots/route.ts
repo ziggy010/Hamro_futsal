@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "../../../auth";
 import { prisma } from "../../../src/lib/prisma";
-import { getErrorMessage } from "@/lib/utils/error-message";
 
 function startOfDay(date: Date) {
   const d = new Date(date);
@@ -80,10 +79,9 @@ export async function GET(req: Request) {
 
     return NextResponse.json(
       {
-        error: "Failed to fetch slots",
-        details: getErrorMessage(error),
+        error: "Availability is temporarily unavailable. Please try again shortly.",
       },
-      { status: 500 },
+      { status: 503, headers: { "Retry-After": "30" } },
     );
   }
 }

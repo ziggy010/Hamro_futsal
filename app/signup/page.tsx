@@ -54,8 +54,6 @@ function SignupPageContent() {
       if (passwordTooShort) { setError("Password must be at least 6 characters."); return; }
       if (phoneInvalid) { setError("Please enter a valid phone number."); return; }
 
-      const fallbackUrl = callbackUrl || "/";
-
       const res = await fetch("/api/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -70,21 +68,18 @@ function SignupPageContent() {
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Failed to sign up");
 
+      if (data.verificationRequired) {
+        router.replace(`/login?verification=sent${callbackUrl ? `&callbackUrl=${encodeURIComponent(callbackUrl)}` : ""}`);
+        return;
+      }
+      const fallbackUrl = callbackUrl || "/";
       const loginRes = await signIn("credentials", {
         email: normalizedEmail,
         password,
         callbackUrl: fallbackUrl,
         redirect: false,
       });
-
-      if (!loginRes || loginRes.error) {
-        router.replace(
-          callbackUrl ? `/login?callbackUrl=${encodeURIComponent(callbackUrl)}` : "/login",
-        );
-        return;
-      }
-
-      router.replace(loginRes.url || fallbackUrl);
+      router.replace(loginRes?.error ? "/login" : loginRes?.url || fallbackUrl);
     } catch (err: unknown) {
       setError(getErrorMessage(err, "Something went wrong."));
     } finally {

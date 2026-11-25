@@ -23,6 +23,7 @@ function LoginPageContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const callbackUrl = searchParams.get("callbackUrl") || "";
+  const verification = searchParams.get("verification");
 
   const normalizedEmail = email.trim().toLowerCase();
   const emailInvalid =
@@ -59,7 +60,7 @@ function LoginPageContent() {
       });
 
       if (!res || res.error) {
-        setError("Invalid email or password.");
+        setError("Invalid credentials, or your email is not verified yet.");
         return;
       }
 
@@ -159,6 +160,12 @@ function LoginPageContent() {
 
             {/* Fields */}
             <div style={{ padding: "1.5rem 1.75rem", display: "flex", flexDirection: "column", gap: "1.125rem" }}>
+              {verification && <p role="status" className="rounded-xl border border-white/10 p-3 text-sm text-[var(--fg-3)]">
+                {verification === "success" ? "Email verified. You can sign in now." :
+                  verification === "sent" ? "Check your email and open the verification link before signing in." :
+                  verification === "expired" ? "Verification link expired. Sign up again with the same email to receive a new link." :
+                  "Could not verify that link. Please request a new one by signing up again."}
+              </p>}
               <div>
                 <label
                   style={{

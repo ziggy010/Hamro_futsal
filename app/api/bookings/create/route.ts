@@ -5,12 +5,9 @@ import { auth } from "../../../../auth";
 import { getOpenGameCutoffTime } from "../../../../lib/open-game-cutoff";
 import { getHourlyRate, type ActivityType } from "../../../../lib/pricing";
 import { OPEN_GAMES_ENABLED } from "../../../../lib/features";
-
-type IncomingSlot = {
-  startHour: number;
-  endHour: number;
-  price: number;
-};
+import { bookingEmail, emailConfigured, sendEmail } from "@/lib/email";
+import { clientIp, rateLimited } from "@/lib/rate-limit";
+import { normalizeSlots, type IncomingSlot } from "@/lib/booking-rules";
 
 type BookingBody = {
   name: string;
@@ -31,46 +28,6 @@ function startOfDay(date: Date) {
   return d;
 }
 
-function normalizeSlots(slots: IncomingSlot[], hourlyRate: number) {
-  const normalized = slots
-    .map((slot) => ({
-      startHour: Number(slot.startHour),
-      endHour: Number(slot.endHour),
-      price: Number(slot.price),
-    }))
-    .sort((a, b) => a.startHour - b.startHour);
-
-  if (normalized.length === 0 || normalized.length > 2) {
-    throw new Error("INVALID_SLOT_SELECTION");
-  }
-
-  for (const slot of normalized) {
-    const isValidHour =
-      Number.isInteger(slot.startHour) &&
-      Number.isInteger(slot.endHour) &&
-      slot.startHour >= 6 &&
-      slot.endHour <= 22 &&
-      slot.endHour === slot.startHour + 1;
-
-    if (!isValidHour) {
-      throw new Error("INVALID_SLOT_SELECTION");
-    }
-
-    if (slot.price !== hourlyRate) {
-      throw new Error("INVALID_SLOT_PRICE");
-    }
-  }
-
-  if (
-    normalized.length === 2 &&
-    normalized[1].startHour !== normalized[0].endHour
-  ) {
-    throw new Error("INVALID_SLOT_SELECTION");
-  }
-
-  return normalized;
-}
-
 function getGameStart(date: Date, slots: IncomingSlot[]) {
   const earliestStartHour = Math.min(...slots.map((slot) => slot.startHour));
   const gameStart = new Date(date);
@@ -87,6 +44,10 @@ export async function POST(req: Request) {
         { error: "You must be logged in to book a slot" },
         { status: 401 },
       );
+    }
+    if (await rateLimited(`booking:ip:${clientIp(req)}`, 20, 60 * 60_000) ||
+        await rateLimited(`booking:email:${session.user.email}`, 8, 60 * 60_000)) {
+      return NextResponse.json({ error: "Too many booking attempts. Please try again later." }, { status: 429 });
     }
     const sessionEmail = session.user.email;
     const body = (await req.json()) as BookingBody;
@@ -294,8 +255,18 @@ export async function POST(req: Request) {
       },
     );
 
+    let confirmationEmailSent = false;
+    if (result.user.email && emailConfigured()) {
+      try {
+        await sendEmail(result.user.email, "Your Strike Yard slot is booked", bookingEmail(result), `booking-${result.id}`);
+        confirmationEmailSent = true;
+      } catch (error) {
+        console.error("BOOKING_CONFIRMATION_EMAIL_ERROR", result.id, error);
+      }
+    }
+
     return NextResponse.json(
-      { success: true, booking: result },
+      { success: true, booking: result, confirmationEmailSent },
       { status: 201 },
     );
   } catch (error: unknown) {

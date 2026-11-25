@@ -2,6 +2,7 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
 import { prisma } from "./src/lib/prisma";
+import { clientIp, rateLimited } from "./lib/rate-limit";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
@@ -16,15 +17,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         password: {},
       },
 
-      async authorize(credentials) {
+      async authorize(credentials, request) {
         const email = credentials?.email as string | undefined;
         const password = credentials?.password as string | undefined;
 
         if (!email || !password) return null;
+        const normalizedEmail = email.trim().toLowerCase();
+        if (await rateLimited(`login:ip:${clientIp(request)}`, 30, 15 * 60_000) ||
+            await rateLimited(`login:email:${normalizedEmail}`, 10, 15 * 60_000)) return null;
 
         // ADMIN LOGIN (keep this first)
         if (
-          email === process.env.ADMIN_EMAIL &&
+          normalizedEmail === process.env.ADMIN_EMAIL?.toLowerCase() &&
           password === process.env.ADMIN_PASSWORD
         ) {
           return {
@@ -37,10 +41,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         // USER LOGIN
         const user = await prisma.user.findUnique({
-          where: { email },
+          where: { email: normalizedEmail },
         });
 
-        if (!user || !user.passwordHash) return null;
+        if (!user || !user.passwordHash || !user.emailVerifiedAt) return null;
 
         const isValid = await compare(password, user.passwordHash);
 

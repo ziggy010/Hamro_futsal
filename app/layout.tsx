@@ -7,6 +7,7 @@ import Footer from "@/components/layout/footer";
 import MobileBottomNav from "@/components/layout/mobile-bottom-nav";
 import { NavigationProgressProvider } from "@/components/layout/navigation-progress";
 import Providers from "./providers";
+import WebVitals from "@/components/layout/web-vitals";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://strikeyard.vercel.app"),
@@ -56,6 +57,7 @@ export default function RootLayout({
         />
       </head>
       <body className="bg-[#0B0F14] text-white antialiased">
+        <WebVitals />
         <NavigationProgressProvider>
           <AmbientBackdrop />
           <Providers>

@@ -66,6 +66,15 @@ Recommended for deployed auth:
 - `AUTH_URL`
   Public base URL of the deployed app. Production value: `https://strikeyard.vercel.app`
 
+Required for new signups and booking confirmation email:
+
+- `RESEND_API_KEY`
+  Server-side API key from Resend. Never use a `NEXT_PUBLIC_` prefix.
+- `EMAIL_FROM`
+  Sender on a domain verified in Resend, for example `Strike Yard <bookings@your-domain.com>`.
+
+The `vercel.app` subdomain and a Gmail address are not sender domains you control. Verify your own domain with Resend, set `EMAIL_FROM` to an address on it, then set `EMAIL_VERIFICATION_ENABLED=true`. Until then, leave the flag false: signup works without verification and booking confirmation email is skipped for known public-mail senders. If verification is enabled without email configuration, new signup fails closed with a 503. Booking succeeds even if a configured confirmation email fails, with the failure logged separately.
+
 An example file is included at [.env.example](/Users/risabtajale/futsal-booking/.env.example).
 
 ## Local Setup
@@ -174,6 +183,11 @@ Before deploying, make sure:
 - `AUTH_URL` is exactly `https://strikeyard.vercel.app`
 - admin credentials are configured
 - `npm run build` passes locally
+- the `20261125090000_email_verification_and_limits` migration is deployed (existing password accounts are backfilled as verified)
+- the sender domain is verified and `RESEND_API_KEY` and `EMAIL_FROM` are configured in Vercel
+- `EMAIL_VERIFICATION_ENABLED=true` is set only after a live verification email has been delivered successfully
+
+Run `npm test` for booking-rule unit tests. Sampled mobile and desktop LCP, INP, and CLS measurements appear as `WEB_VITAL` entries in server logs; no URL query strings or customer identifiers are included. Email delivery and full booking-flow integration must be validated against a reachable database and configured Resend account before production rollout.
 
 ## Current Status
 
