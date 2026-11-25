@@ -4,7 +4,7 @@ import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Eye, EyeOff } from "lucide-react";
 import FadeIn from "@/components/ui/fade-in";
 import { getErrorMessage } from "@/lib/utils/error-message";
 
@@ -19,6 +19,7 @@ function SignupPageContent() {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const callbackUrl = searchParams.get("callbackUrl") || "";
@@ -249,16 +250,27 @@ function SignupPageContent() {
                 <label style={{ display: "block", fontSize: "13px", fontWeight: 500, color: "var(--fg-3)", marginBottom: "0.5rem" }}>
                   Password
                 </label>
-                <input
-                  type="password"
-                  placeholder="At least 6 characters"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && canSubmit && handleSignup()}
-                  style={inputStyle(passwordTooShort)}
-                  onFocus={(e) => (e.currentTarget.style.borderColor = passwordTooShort ? "rgba(255,100,100,0.45)" : "var(--accent)")}
-                  onBlur={(e) => (e.currentTarget.style.borderColor = passwordTooShort ? "rgba(255,100,100,0.45)" : "var(--line)")}
-                />
+                <div style={{ position: "relative" }}>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="At least 6 characters"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && canSubmit && handleSignup()}
+                    style={{ ...inputStyle(passwordTooShort), paddingRight: "48px" }}
+                    onFocus={(e) => (e.currentTarget.style.borderColor = passwordTooShort ? "rgba(255,100,100,0.45)" : "var(--accent)")}
+                    onBlur={(e) => (e.currentTarget.style.borderColor = passwordTooShort ? "rgba(255,100,100,0.45)" : "var(--line)")}
+                  />
+                  <button
+                    type="button"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    aria-pressed={showPassword}
+                    onClick={() => setShowPassword((visible) => !visible)}
+                    className="absolute right-1.5 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-xl text-[var(--fg-dim)] transition hover:bg-white/[0.06] hover:text-[var(--fg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
                 {passwordTooShort && (
                   <p style={{ marginTop: "0.4rem", fontSize: "12px", color: "rgba(255,140,140,0.9)" }}>
                     Password must be at least 6 characters.

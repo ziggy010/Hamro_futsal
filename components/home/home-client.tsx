@@ -10,10 +10,10 @@ import FadeIn from "@/components/ui/fade-in";
 const ROTATE_WORDS = ["belongs", "gathers", "stays", "wins", "breathes", "lives"];
 
 const FEATURES = [
-  { n: "01", label: "Futsal", x: 26, y: 26 },
-  { n: "02", label: "Beer garden", x: 52, y: 34 },
-  { n: "03", label: "Pickleball", x: 42, y: 64 },
-  { n: "04", label: "Garden Lounge", x: 74, y: 62 },
+  { n: "01", label: "Futsal", x: 38, y: 45 },
+  { n: "02", label: "Beer garden", x: 76, y: 70 },
+  { n: "03", label: "Pickleball", x: 29, y: 80 },
+  { n: "04", label: "Garden Lounge", x: 70, y: 39 },
 ];
 
 const QUICK_SLOTS = [
@@ -96,11 +96,13 @@ function AerialMonitor() {
     <div className="hero-aerial">
       {/* photo frame */}
       <div className="hero-aerial-frame" onMouseLeave={() => setAuto(true)}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/aerial-twilight.jpg"
-          alt="Aerial view of Strike Yard at twilight"
+        <Image
+          src="/twilight-strike-yard-complex.png"
+          alt="Overhead view of the Strike Yard futsal hall, pickleball courts, beer garden, and garden lounge at twilight"
           className="hero-aerial-photo"
+          fill
+          sizes="(max-width: 1024px) 100vw, 50vw"
+          priority
         />
 
         <div className="hero-aerial-warm" aria-hidden="true" />

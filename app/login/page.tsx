@@ -4,7 +4,7 @@ import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Eye, EyeOff } from "lucide-react";
 import FadeIn from "@/components/ui/fade-in";
 import { getErrorMessage } from "@/lib/utils/error-message";
 
@@ -19,6 +19,7 @@ function LoginPageContent() {
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const callbackUrl = searchParams.get("callbackUrl") || "";
@@ -210,27 +211,38 @@ function LoginPageContent() {
                 >
                   Password
                 </label>
-                <input
-                  type="password"
-                  placeholder="Enter your password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && canSubmit && handleLogin()}
-                  style={{
-                    width: "100%",
-                    borderRadius: "14px",
-                    border: "1px solid var(--line)",
-                    background: "var(--bg-soft)",
-                    padding: "13px 16px",
-                    fontSize: "15px",
-                    color: "var(--fg)",
-                    outline: "none",
-                    boxSizing: "border-box" as const,
-                    transition: "border-color .2s",
-                  }}
-                  onFocus={(e) => (e.currentTarget.style.borderColor = "var(--accent)")}
-                  onBlur={(e) => (e.currentTarget.style.borderColor = "var(--line)")}
-                />
+                <div style={{ position: "relative" }}>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && canSubmit && handleLogin()}
+                    style={{
+                      width: "100%",
+                      borderRadius: "14px",
+                      border: "1px solid var(--line)",
+                      background: "var(--bg-soft)",
+                      padding: "13px 48px 13px 16px",
+                      fontSize: "15px",
+                      color: "var(--fg)",
+                      outline: "none",
+                      boxSizing: "border-box" as const,
+                      transition: "border-color .2s",
+                    }}
+                    onFocus={(e) => (e.currentTarget.style.borderColor = "var(--accent)")}
+                    onBlur={(e) => (e.currentTarget.style.borderColor = "var(--line)")}
+                  />
+                  <button
+                    type="button"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    aria-pressed={showPassword}
+                    onClick={() => setShowPassword((visible) => !visible)}
+                    className="absolute right-1.5 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-xl text-[var(--fg-dim)] transition hover:bg-white/[0.06] hover:text-[var(--fg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
               </div>
 
               {error && (
